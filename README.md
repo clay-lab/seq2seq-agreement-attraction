@@ -1,1 +1,1 @@
-# seq2seq-agreement-attraction
+Use `conda env create -f environment.yaml` to replicate our conda environment.

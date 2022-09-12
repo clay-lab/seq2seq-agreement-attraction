@@ -1,0 +1,22 @@
+name: py38
+dependencies:
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - cudatoolkit=11.3
+  - huggingface_hub >=0.2.1
+  - python=3.8.8
+  - setuptools <=59.5.0
+  - conda-forge::transformers
+  - importlib-metadata
+  - datasets
+  - pandas
+  - sacrebleu
+  - sentencepiece
+  - tqdm
+  - seaborn
+  - spacy
+  - matplotlib
+  - protobuf
+  - nltk
+  - awk-sdk-cpp=1.8.186
