@@ -17,7 +17,7 @@ module load miniconda
 source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 
 python core/run_seq2seq.py \
-	--model_name_or_path 'google/t5-base' \
+	--model_name_or_path 't5-base' \
 	--do_train \
 	--task translation_src_to_tgt \
 	--train_file data/pres_en-dist/pres_en-dist_train.json.gz \
