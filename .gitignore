@@ -1,10 +1,6 @@
 slurm-*.out
 .DS_Store
 
-results/
-models/*.txt
-models/*.pkl
-models/old/
 joblogs/
 outputs/
 outputs
@@ -12,7 +8,6 @@ outputs
 
 scripts/backup/
 scripts/old/
-scripts/clear_dataset_cache/
 scripts/*.txt
 scripts/**/*.txt
 data/old/
@@ -24,7 +19,3 @@ __pycache__/
 
 *.ipynb
 .ipynb_checkpoints/
-*.png
-*.pdf
-*.csv
-*.csv.gz

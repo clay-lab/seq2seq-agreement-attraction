@@ -1,180 +1,156 @@
 # code adapted from Bob Frank's grammars.py
+import random
+
 from nltk import Tree, PCFG
 from nltk import nonterminals
 
-import random
 from typing import *
 from .generator import generate, format_tree_string
 from .generator import create_dataset_json, combine_dataset_jsons
-"""
-	Create some nonterminals
+from .generator import grep_next_subtree
 
-	S, Sentence: May have preceding AdvP
-	S1, Sentence 1: May have following AdvP
-	S2, Sentence 2:  Sentence
-	AdvP, Adjunct sentence
+from .keybaseddefaultdict import KeyBasedDefaultDict
 
-	NPSgNom, Nominative singular noun phrase (NP)
-	NPPlNom, Nominative plural NP
-	
-	MP, Modal phrase
-	
-	VP, Verb Phrase
-	IVP, Intransitive verb phrase
-	TVP, Transitive verb phrase
-	
-	RelP, Relative clause with masculine pronoun
-	
-	NPAcc, Accusative noun phrase (NP)
-	NPSgAcc, Accusative singular NP
-	NPPlAcc, Accusative plural NP
-	
-	DetSg, Singular determiner
-	DetPl, Plural determiner
-	
-	NSgNom, Nominative singular noun
-	NPlNom, Nominative plural noun
-	
-	NSgAcc, Accusative singular noun
-	NPlAcc, Accusative plural noun
-	
-	PN, Name
-	
-	M, Modal
-	
-	IV, Intransitive verb
-	TV, Transitive verb
-	
-	RP, Relative pronoun
-	
-	Adv, adverbial complementizer
-	
-	Neg, negation
-	
-	NTand, and
-	
-	comma, comma (used to offset AdvPs)
-"""
+# this creates a dictionary that returns a default string for sg and pl
+# based on the value of the key passed to it
+# override for specific verbs that display non-default behavior as below
+PAST_PRES = {
+	'sg': KeyBasedDefaultDict(lambda s: s.replace('ed', 's')),
+	'pl': KeyBasedDefaultDict(lambda s: s.replace('ed',  ''))
+}
 
-S, S1, S2, AdvP, NPSgNom, NPPlNom, MP, VP, IVP, TVP, RelP, NPAcc, NPSgAcc, NPPlAcc = nonterminals(
-	'S, S1, S2, AdvP, NPSgNom, NPPlNom, MP, VP, IVP, TVP, RelP, NPAcc, NPSgAcc, NPPlAcc'
-)
+PAST_PRES['sg'].update({
+	k: k.replace('ed', 'es') for k in [
+		'liked', 
+		'inspired',
+	]
+})
 
-not_grammar = PCFG.fromstring("""
-	S -> AdvP comma S [0.1] | S1 [0.9]
-	S1 -> S1 comma AdvP [0.1] | S2 [0.9]
-	S2 -> NPNom MP [1.0]
-	AdvP -> Adv NPNom MP [0.9] | AdvP comma Conj AdvP [0.1]
+PAST_PRES['pl'].update({
+	k: k.replace('ed', 'e') for k in [
+		'liked', 
+		'inspired',
+	]
+})
+
+english_grammar = PCFG.fromstring("""
+	S -> DP VP [1.0]
 	
-	NPNom -> NPSgNom [0.4] | NPPlNom [0.4] | PN [0.2]
+	DP -> D NP [1.0]
+	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
+	N -> N_sg [0.5] | N_pl [0.5]
 	
-	NPSgNom -> DetSg NSgNom [1.0]
-	NPPlNom -> DetPl NPlNom [1.0]
+	VP -> V DP [1.0]
 	
-	MP -> M VP [1.0]
+	PP -> P DP [1.0]
+	CP -> C VP [1.0]
 	
-	VP -> IV [0.5] | TV NPAcc [0.5]
+	D -> 'the' [1.0]
 	
-	RelP -> RP NPNom M TV [1.0]
+	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
+	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
 	
-	NPAcc -> NPSgAcc [0.4] | NPPlAcc [0.4] | NPSgAcc RelP [0.1] | NPPlAcc RelP [0.1]
+	V -> 'helped' [0.1] | 'visited' [0.1] | 'liked' [0.1] | 'bothered' [0.1] | 'inspired' [0.1] | 'recruited' [0.1] | 'assisted' [0.1] | 'confounded' [0.1] | 'accosted' [0.1] | 'avoided' [0.1]
 	
-	NPSgAcc -> DetSg NSgAcc [1.0]
-	NPPlAcc -> DetPl NPlAcc [1.0]
+	P -> 'of' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'with' [0.2]
 	
-	DetSg -> 'the' [0.5] | 'a' [0.5]
-	DetPl -> 'the' [0.4] | 'some' [0.4] | '' [0.2] | 'any' [0.0]
-	
-	NSgNom -> 'student' [0.25] | 'professor' [0.25] | 'wizard' [0.25] | 'witch' [0.25]
-	NSgAcc -> 'cake' [0.1] | 'pancake' [0.1] | 'strudel' [0.1] | 'donut' [0.1] | 'candy' [0.1] | 'baklava' [0.1] | 'cookie' [0.1] | 'waffle' [0.1] | 'pastry' [0.1] | 'croissant' [0.1]
-	
-	NPlNom -> 'students' [0.25] | 'professors' [0.25] | 'wizards' [0.25] | 'witches' [0.25] 
-	NPlAcc -> 'cakes' [0.1] | 'pancakes' [0.1] | 'strudel' [0.1] | 'donuts' [0.1] | 'candy' [0.1] | 'baklava' [0.1] | 'cookies' [0.1] | 'waffles' [0.1] | 'pastries' [0.1] | 'croissants' [0.1]
-	
-	PN -> 'John' [0.1] | 'Frank' [0.1] | 'Zachary' [0.1] | 'Luke' [0.1] | 'Ben' [0.1] | 'Sue' [0.1] | 'Beth' [0.1] | 'Lily' [0.1] | 'Julia' [0.1] | 'Laura' [0.1]
-	
-	M -> 'can' [0.25] | 'may' [0.25] | 'must' [0.25] | 'should' [0.25]
-	
-	IV -> 'drink' [0.1] | 'celebrate' [0.1] | 'wiggle' [0.1] | 'laugh' [0.1] | 'smile' [0.1] | 'giggle' [0.1] | 'jump' [0.1] | 'run' [0.1] | 'walk' [0.1] | 'swim' [0.1]
-	
-	TV -> 'prepare' [0.1] | 'make' [0.1] | 'eat' [0.1] | 'decorate' [0.1] | 'paint' [0.1] | 'chew' [0.1] | 'devour' [0.1] | 'assemble' [0.1] | 'create' [0.1] | 'hide' [0.1]
-	
-	RP -> 'that' [0.5] | '' [0.5]
-	
-	Conj -> 'and' [1.0]
-	
-	Adv -> 'because' [0.5] | 'since' [0.5]
-	
-	comma -> ',' [1.0]
+	C -> 'that' [1.0]
 """)
+setattr(english_grammar, 'lang', 'en')
 
-setattr(not_grammar, 'lang', 'en')
+def present_pair(grammar: PCFG) -> Tuple:
+	past_tree = generate(grammar)
+	pres_tree = reinflect(past_tree)
+	return past_tree, 'pres', pres_tree
 
-def negation(grammar: PCFG) -> Tuple:
-	pos_tree = generate(grammar)
-	neg_tree = negate(pos_tree)
-	return pos_tree, 'neg', neg_tree
+def past_pair(grammar: PCFG) -> Tuple:
+	past_tree = generate(grammar)
+	return past_tree, 'past', past_tree
 
-def affirmation(grammar: PCFG) -> Tuple:
-	pos_tree = generate(grammar)
-	return pos_tree, 'pos', pos_tree
-
-def neg_or_pos(grammar: PCFG, neg_p: float = 0.5) -> Tuple:
-	
-	return negation(grammar) if random.random() < neg_p else affirmation(grammar)
-
-def negate(t: Tree) -> Tree:
+def reinflect(t: Tree) -> Tree:
 	# Make a deep copy so we don't mess up the original tree
 	t_copy = t.copy(deep=True)
 	
-	# Get the main clause, which is S2
-	main_clause = next(
-		t_copy.subtrees(
-			filter = lambda x: x.label() == S2
-		)
-	)
+	# get the main clause verb
+	main_clause_VP = grep_next_subtree(t_copy, 'VP')
+	main_clause_V = grep_next_subtree(main_clause_VP, r'^V$')
 	
-	# Get the main clause MP
-	main_clause_mp = next(
-		main_clause.subtrees(
-			filter = lambda x: x.label() == MP
-		)
-	)
+	# get the number of the main clause subject
+	main_clause_subject = grep_next_subtree(t_copy, r'^N_')
+	subject_number = 'sg' if main_clause_subject.label().symbol().endswith('sg') else 'pl'
 	
-	# Get the modal within the main clause MP
-	main_clause_m = next(
-		main_clause_mp.subtrees(
-			filter = lambda x: x.label().symbol() == 'M'
-		)
-	)
-	
-	# Negate it
-	if main_clause_m[0] != 'can':
-		main_clause_m[0] += ' not'
-	else:
-		main_clause_m[0] += 'not'
-	
-	# convert any some to any in the scope of negation
-	try:
-		main_clause_obj_det = next(
-			main_clause_mp.subtrees(
-				filter = lambda x: x.label().symbol() == 'DetPl'
-			)
-		)
-		
-		if main_clause_obj_det[0] == 'some':
-			main_clause_obj_det[0] = 'any'
-	except StopIteration:
-		pass
+	# map the past form of the verb to the present form based on the number of the subject
+	main_clause_V[0] = PAST_PRES[subject_number][main_clause_V[0]]
 	
 	return t_copy
 
-def test_file(grammar: PCFG = not_grammar, n: int = 10, filename: str = 'test.txt'):
+def pres_or_past(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
+	
+	return present_pair(grammar) if random.random() < pres_p else past_pair(grammar)
+
+def pres_or_past_no_pres_dist(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
+	
+	source, pfx, target = present_pair(grammar) if random.random() < pres_p else past_pair(grammar)
+	
+	# for English, we do not care about distractors in the past tense, since they do not affect attraction
+	# in fact, we WANT some of these for training
+	if pfx == 'pres':
+		# otherwise, we need to modify the tree to remove the distractor(s) from the source and the target
+		subject_position = [
+			position 
+			for position in source.treepositions() 
+				if hasattr(source[position], '_label') and 
+					source[position].label().symbol() == 'NP'
+		][0]
+		
+		for tree in [source, target]:
+			main_clause_subject = grep_next_subtree(tree, r'^NP$').copy(deep=True)
+			main_clause_subject_no_dist = grep_next_subtree(main_clause_subject, r'^N$')
+			tree[subject_position] = main_clause_subject_no_dist
+		
+	return source, pfx, target
+
+def test_file(grammar: PCFG = english_grammar, n: int = 10, filename: str = 'test.txt'):
 	"""
-	Create a small test file with n pairs of formatted positive and negative sentences
+	Create a small test file with n pairs of formatted present and past tense sentences
 	"""
-	s = [negation(grammar) for _ in range(n)]
-	s = [(format_tree_string(t[0]), t[1], format_tree_string(t[2])) for t in s]
+	s = [present_pair(grammar) for _ in range(n)]
+	s = [(format_tree_string(past_tree), pfx, format_tree_string(present_tree)) for past_tree, pfx, present_tree in s]
 	with open(filename, 'w') as out:
-		for pair in s:
-			out.write(' '.join(pair) + '\n\n')
+		for tup in s:
+			out.write(', '.join(tup) + '\n\n')
+
+# This grammar IS ONLY USED FOR PARSING during evaluation
+english_grammar_pres_tense = PCFG.fromstring("""
+	S -> DP VP [1.0]
+	
+	DP -> D NP [1.0]
+	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
+	N -> N_sg [0.5] | N_pl [0.5]
+	
+	VP -> V DP [1.0]
+	
+	PP -> P DP [1.0]
+	CP -> C VP [1.0]
+	
+	D -> 'the' [1.0]
+	
+	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
+	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
+	
+	V -> 'help' [0.05] | 'helps' [0.05]
+	V -> 'visit' [0.05] | 'visits' [0.05] 
+	V -> 'like' [0.05] | 'likes' [0.05]
+	V -> 'bother' [0.05] | 'bothers' [0.05]
+	V -> 'inspire' [0.05] | 'inspires' [0.05]
+	V -> 'recruit' [0.05] | 'recruits' [0.05]
+	V -> 'assist' [0.05] | 'assists' [0.05]
+	V -> 'confound' [0.05] | 'confounds' [0.05]
+	V -> 'accost' [0.05] | 'accosts' [0.05]
+	V -> 'avoid' [0.05] | 'avoids' [0.05]
+	
+	P -> 'of' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'with' [0.2]
+	
+	C -> 'that' [1.0]
+""")
+setattr(english_grammar_pres_tense, 'lang', 'en')

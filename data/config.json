@@ -1,62 +1,28 @@
 {
-	"en": [
+	"en-dist": [
 		{
-			"neg": [
-				0.5, 
-				{
-					"train": 100000, 
-					"dev": 1000, 
+			"pres": [
+				1, 
+				{ 
 					"test": 10000
-				}
-			], 
-			"pos": [
-				0, 
-				{
-					"train": 125
 				}
 			]
 		},
-		"english_grammar.not_grammar",
-		"english_grammar.neg_or_pos"
+		"english_grammar.english_grammar",
+		"english_grammar.pres_or_past"
 	],
-	"de": [
+	"en-nodist": [
 		{
-			"neg": [
-				0.5, 
+			"pres": [
+				0.5,
 				{
-					"train": 100000, 
-					"dev": 1000, 
-					"test": 10000
-				}
-			], 
-			"pos": [
-				0, 
-				{
-					"train": 125
+					"train": 100000,
+					"dev": 1000,
+					"test": 10000	
 				}
 			]
 		},
-		"german_grammar.nicht_grammar",
-		"german_grammar.neg_or_pos"
-	],
-	"tu": [
-		{
-			"neg": [
-				0.5, 
-				{
-					"train": 100000, 
-					"dev": 1000, 
-					"test": 10000
-				}
-			], 
-			"pos": [
-				0, 
-				{
-					"train": 125
-				}
-			]
-		},
-		"turkish_grammar.turkish_grammar",
-		"turkish_grammar.neg_or_pos"
+		"english_grammar.english_grammar",
+		"english_grammar.pres_or_past_no_pres_dist"
 	]
 }
