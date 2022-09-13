@@ -8,13 +8,11 @@ import nltk
 from tqdm import tqdm
 from typing import *
 from inspect import signature, getmembers
-from grammars import german_grammar, turkish_grammar, english_grammar
-from grammars.generator import get_english_pos_seq, get_german_pos_seq, get_turkish_pos_seq, grep_next_subtree
+from grammars import english_grammar
+from grammars.generator import get_english_pos_seq, grep_next_subtree
 from itertools import cycle
 from statistics import mean
 from collections import defaultdict
-
-from grammars import english_grammar
 
 GRAMMARS = {
 	'en': english_grammar.english_grammar,
