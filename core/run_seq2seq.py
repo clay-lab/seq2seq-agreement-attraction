@@ -662,13 +662,13 @@ def main():
 		
 		eval_preds 	= pd.concat([pd.read_csv(eval_file) for eval_file in eval_files], ignore_index=True)
 		
-		grouping_vars = [k for k in list(metadata[0].keys()) if not 'pos_seq' in k and not k == 'polarity']
+		grouping_vars = [k for k in list(metadata[0].keys()) if not 'pos_seq' in k and not k == 'pfx']
 		
 		title = os.path.split(training_args.output_dir)
 		title = [s for s in title if s][-1]
-		title = re.findall('(agratt-.*)-.*?$', title)
+		title = re.findall('(pres-.*)-.*?$', title)
 		title = title[0].replace('-', '_')
-		title = f'training: {title}, test: {re.findall("(agratt_.*)_.*?", basename)[0]}'
+		title = f'training: {title}, test: {re.findall("(pres_.*)_.*?", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, basename + ".learning_curves.pdf")) as pdf:
 			common_kwargs = dict(x='iteration', ci=None)
@@ -682,12 +682,20 @@ def main():
 						data = eval_preds
 								if var is None 
 								else eval_preds.assign(
-									**{var: [' + '.join([p, str(v)]) if not (isinstance(v,float) and np.isnan(v)) else np.nan for p, v in zip(eval_preds.polarity, eval_preds[var])]}
+									**{
+										var: 
+										[
+											' + '.join([p, str(v)]) 
+											if not (isinstance(v,float) and np.isnan(v)) 
+											else np.nan 
+												for p, v in zip(eval_preds.polarity, eval_preds[var])
+										]
+									}
 								).sort_values(var).reset_index(drop=True)
 						))
 					plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue=var))
 					if var is None:
-						plot_kwargs.update(dict(style='polarity'))
+						plot_kwargs.update(dict(style='pfx'))
 					
 					sns.lineplot(**plot_kwargs)
 					
@@ -711,7 +719,7 @@ def main():
 										if not label == None and 
 										   label == (labels + [None])[i+1] or
 										   (
-										   		(label in ['neg', 'pos'] and 
+										   		(label in ['pres', 'past'] and 
 										   		i > len(labels)-3)
 										   )
 									]
@@ -721,7 +729,7 @@ def main():
 						legend_kwargs.update(dict(handles=handles, labels=labels))
 						
 						ax.legend(**legend_kwargs)
-						ax.get_legend().set_title(f'polarity + {var.replace("_", " ")}' if var is not None else 'metric')
+						ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
 						
 						# set axis ticks and limits for display
 						plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
@@ -733,17 +741,16 @@ def main():
 						
 						fig = plt.gcf()
 						fig.set_size_inches(8, 6)
-						suptitle = f'{title}' + (f', groups: polarity + {var.replace("_", " ")}\n{c.replace("_", " ")}' if var is not None else '')
+						suptitle = f'{title}' 
+						suptitle += (
+							f', groups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
+							if var is not None 
+							else ''
+						)
 						fig.suptitle(suptitle)
 						pdf.savefig(bbox_inches='tight')
 						plt.close()
 						del fig
-	
-	# return results
-
-def _mp_fn(index):
-	# For xla_spawn (TPUs)
-	main()
 
 if __name__ == '__main__':
 	
