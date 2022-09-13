@@ -9,13 +9,19 @@ from tqdm import tqdm
 from typing import *
 from inspect import signature, getmembers
 from grammars import german_grammar, turkish_grammar, english_grammar
-from grammars.generator import get_english_pos_seq, get_german_pos_seq, get_turkish_pos_seq
+from grammars.generator import get_english_pos_seq, get_german_pos_seq, get_turkish_pos_seq, grep_next_subtree
 from itertools import cycle
 from statistics import mean
 from collections import defaultdict
 
+from grammars import english_grammar
+
 GRAMMARS = {
-	'en': english_grammar.not_grammar,
+	'en': english_grammar.english_grammar,
+}
+
+GRAMMARS_PARSING = {
+	'en': english_grammar.english_grammar_pres_tense
 }
 
 POS_SEQ_FUNCS = {
@@ -59,11 +65,6 @@ def parse_to_pos(
 	sentence = LOWERCASE[tgt_lang](format_sentences([sentence])[0])
 	sentence = LOWERCASE[trn_lang](format_sentences([sentence])[0])
 	
-	# negation is not in the grammar, but is done by editing strings.
-	# so we add in a special PoS for it manually here
-	sentence = NEG_WORD_REGEXES[tgt_lang].sub(' [Neg] ', sentence)
-	sentence = NEG_WORD_REGEXES[trn_lang].sub(' [Neg] ', sentence)
-	
 	words = sentence.split()
 	pos_seq = words.copy()
 	
@@ -72,18 +73,6 @@ def parse_to_pos(
 			if word in d.keys():
 				pos_seq[i] = d[word]
 				break
-			elif word == '[Neg]':
-				break
-			# elif tgt_lang == 'tu' or trn_lang == 'tu':
-			# 	if re.sub('y?i$', '', word) in d.keys():
-			# 		pos_seq[i] = d[re.sub('y?i$', '', word)]
-			# 		break
-			# 	elif len(pos_seq) >= i+2 and f'{word} {pos_seq[i+1]}' in d.keys():
-			# 		pos_seq[i] = d[f'{word} {pos_seq[i+1]}']
-			# 		break
-			# 	elif i != 0 and f'{pos_seq[i-1]} {word}' in d.keys():
-			# 		pos_seq[i] = ''
-			# 		break
 		else:
 			pos_seq[i] = '[Unk]'
 	
@@ -343,6 +332,83 @@ def second_word_match(
 	if len(pred_words) > 1 and len(gold_words) > 1:
 		return pred_words[1] == gold_words[1]
 
+@metric
+def agreement_attraction(
+	pred_sentence: str,
+	gold_sentence: str,
+	trn_lang: str,
+	pfx: str,
+	subject_number: str,
+) -> Union[bool, 'NoneType']:
+	
+	# attraction doesn't mean anything if there's no possible evidence for it,
+	# so return None
+	if trn_lang == 'en' and pfx == 'past':
+		return None
+	
+	# if the predicted sentence matches the gold sentence, no attraction has occurred
+	# since the gold sentence always has correct agreement
+	if pred_sentence == gold_sentence:
+		return False
+	
+	# now, we parse the predicted sentence using the present tense grammar
+	# to determine whether the difference is due to agreement attraction or not
+	parser = nltk.parser.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	
+	try:
+		# convert to lowercase and remove period at end for parsing purposes
+		pred_sentence = re.sub(r'\.$', '', pred_sentence.lower())
+		
+		# raises ValueError if unable to parse
+		parsed_prediction = list(parser.parse(pred_sentence))[-1]
+	except ValueError:
+		# if the sentence cannot be parsed, we will not count it
+		# technically, it might still show attraction and also be wrong in some other way
+		# but we can figure that out later
+		return None
+	
+	# not implemented for other languages yet
+	if trn_lang == 'en':
+		# note that we are checking this here because we do not care if the verb is inflected wrong
+		# relative to the gold sentence for attraction.
+		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
+		# suppose the model changes the number of the distractor or the subject head noun. we might
+		# get attraction even though it would not be apparent from the gold sentence, which
+		# would not have this error
+		
+		# get the main clause verb
+		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# no attraction in these cases
+		if (subject_number == 'sg' and main_clause_verb.endswith('s')) or \
+		   (subject_number == 'pl' and not main_clause_verb.endswith('s')):
+			return False
+		
+		# otherwise, we need to check the number of the distractor that immediately precedes the verb
+		# (technically, we could probably check for the number of any distractors, but this seems most relevant)
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
+		N_positions = [
+			position 
+			for position in main_clause_subject.treepositions() 
+				if 	main_clause_subject[position].label().endswith('sg') or 
+					main_clause_subject[position].label().endswith('pl')
+		][1:]
+		
+		# this means there are no distractors
+		if not N_positions:
+			return None
+		
+		final_distractor_position = N_positions[-1]
+		final_distractor_number = re.findall(r'_(.*)', main_clause_subject[final_distractor_position])[0]
+		
+		# the verb got messed up, but it wasn't attraction since the nouns match
+		if final_distractor_number == subject_number:
+			return False
+		else:
+			# attraction occurs if the number of the final distractor differs from the number of the subject,
+			# and the verb is not correctly inflected (in which case it wouldn't pass the check above)
+			return True
+
 def format_sentences(sentences: List[str]) -> List[str]:
 	'''
 	Format sentences for comparison purposes.
@@ -448,8 +514,10 @@ def compute_metrics(
 	# 	pred_lines = [line for i, line in enumerate(pred_lines) if i in gold_line_indices]
 	
 	trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
-	trn_lang 		= re.findall(r'neg-(.*?)-', trn_lang)[0]
-	tgt_lang 		= re.findall(r'neg_(.*?)_', os.path.split(pred_file)[-1])[0]
+	trn_lang 		= re.findall(r'pres-(.*?)-', trn_lang)[0]
+	tgt_lang 		= re.findall(r'pres_(.*?)-?.*?_', os.path.split(pred_file)[-1])[0]
+	pfx 			= [metadata_json['pfx'] for metadata_json in metadata_jsons]
+	subject_number 	= [metadata_json['subject_number'] for metadata_json in metadata_jsons]
 	
 	props = {}
 	for m in tqdm(metrics):
@@ -460,7 +528,9 @@ def compute_metrics(
 			src_pos_seq=source_pos_seq,
 			tgt_pos_seq=target_pos_seq,
 			trn_lang=trn_lang,
-			tgt_lang=tgt_lang
+			tgt_lang=tgt_lang,
+			pfx=pfx,
+			subject_number=subject_number
 		)
 		
 		props[m.name] = RETURN_RESULTS_MAP.get(return_results, lambda x: x.mean)(m)
