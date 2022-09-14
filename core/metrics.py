@@ -351,7 +351,7 @@ def agreement_attraction(
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether the difference is due to agreement attraction or not
-	parser = nltk.parser.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
 	
 	try:
 		# convert to lowercase and remove period at end for parsing purposes
