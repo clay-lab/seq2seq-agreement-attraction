@@ -335,13 +335,13 @@ def agreement_attraction(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
-	pfx: str,
+	tense: str,
 	subject_number: str,
 ) -> Union[bool, 'NoneType']:
 	
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if trn_lang == 'en' and pfx == 'past':
+	if trn_lang == 'en' and tense == 'past':
 		return None
 	
 	# if the predicted sentence matches the gold sentence, no attraction has occurred
@@ -514,7 +514,7 @@ def compute_metrics(
 	trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
 	trn_lang 		= re.findall(r'pres-(.*?)-', trn_lang)[0]
 	tgt_lang 		= re.findall(r'pres_(.*?)-?.*?_', os.path.split(pred_file)[-1])[0]
-	pfx 			= [metadata_json['pfx'] for metadata_json in metadata_jsons]
+	tense 			= [metadata_json['tense'] for metadata_json in metadata_jsons]
 	subject_number 	= [metadata_json['subject_number'] for metadata_json in metadata_jsons]
 	
 	props = {}
@@ -527,7 +527,7 @@ def compute_metrics(
 			tgt_pos_seq=target_pos_seq,
 			trn_lang=trn_lang,
 			tgt_lang=tgt_lang,
-			pfx=pfx,
+			tense=tense,
 			subject_number=subject_number
 		)
 		
