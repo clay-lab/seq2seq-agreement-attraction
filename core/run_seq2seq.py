@@ -662,7 +662,7 @@ def main():
 		
 		eval_preds 	= pd.concat([pd.read_csv(eval_file) for eval_file in eval_files], ignore_index=True)
 		
-		grouping_vars = [k for k in list(metadata[0].keys()) if not 'pos_seq' in k and not k == 'pfx']
+		grouping_vars = [k for k in list(metadata[0].keys()) if not 'pos_seq' in k and not k == 'tense']
 		
 		title = os.path.split(training_args.output_dir)
 		title = [s for s in title if s][-1]
@@ -695,7 +695,7 @@ def main():
 						))
 					plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue=var))
 					if var is None:
-						plot_kwargs.update(dict(style='pfx'))
+						plot_kwargs.update(dict(style='tense'))
 					
 					sns.lineplot(**plot_kwargs)
 					
