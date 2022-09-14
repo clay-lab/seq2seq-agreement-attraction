@@ -688,7 +688,7 @@ def main():
 											' + '.join([p, str(v)]) 
 											if not (isinstance(v,float) and np.isnan(v)) 
 											else np.nan 
-												for p, v in zip(eval_preds.polarity, eval_preds[var])
+												for p, v in zip(eval_preds.tense, eval_preds[var])
 										]
 									}
 								).sort_values(var).reset_index(drop=True)
