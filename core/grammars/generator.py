@@ -562,7 +562,6 @@ def create_t5_scripts(
 	
 	# create the scripts for each language and pair of languages
 	for lang in langs:
-		print(f'Creating scripts for {" -> ".join(lang)}')
 		lang_ft_script = script
 		lang_ev_script = eval_script
 		
@@ -573,22 +572,28 @@ def create_t5_scripts(
 		
 		file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
 		
-		# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
-		if lang[0] == lang[1]:
-			lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
-			lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
-			lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
-			if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh')) or overwrite:
-				with open(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh'), 'wt') as out_file:
-					out_file.write(lang_ft_script)
+		if os.path.isfile(os.path.join('data', train_lang, f'{train_lang}_train.json.gz')):
+			print(f'Creating scripts for {" -> ".join(lang)}')
+			# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
+			if (
+				lang[0] == lang[1] and 
+				os.path.isfile(os.path.join('data', dev_lang, f'{dev_lang}_dev.json.gz'))
+			):
+				lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
+				lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
+				lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
+				if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh')) or overwrite:
+					with open(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh'), 'wt') as out_file:
+						out_file.write(lang_ft_script)
+			
+			if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
+				lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
+				lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
+				lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
+				if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh')) or overwrite:
+					with open(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh'), 'wt') as out_file:
+						out_file.write(lang_ev_script)
 				
-		lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
-		lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
-		lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-		if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh')) or overwrite:
-			with open(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh'), 'wt') as out_file:
-				out_file.write(lang_ev_script)
-		
 		"""
 		# if we have multiple languages, create a zero-shot version of the eval script
 		if len(lang) == 2:
