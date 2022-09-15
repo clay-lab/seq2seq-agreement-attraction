@@ -142,22 +142,22 @@ def grep_next_subtree(
 ) -> Tree:
 	"""
 	Get the next subtree whose label matches the expr.
+	The order is determined by height, with higher nodes returned first.
+	Note that this is different from the behavior of Tree.subtrees, which returns results
+	ordered by linear precedence.
 	:param t: Tree: the tree to search.
 	:param expr: a regex to search when searching the tree
-	:returns Tree: the next subtree in t whose label's symbol matches expr
+	:returns Tree: the next highest subtree in t whose label's symbol matches expr
 	"""
-	try:
-		subt = next(
-			t.subtrees(
-				filter = lambda x: re.search(expr, x.label().symbol())
-								   if hasattr(x.label(), '_symbol')
-								   else re.search(expr, x.label())
-			)
-		)
-	except StopIteration:
-		subt = None
+	for subt in t:
+		if hasattr(subt.label(), '_symbol'):
+			if re.search(expr, subt.label().symbol()):
+				return subt
+		elif re.search(expr, subt.label()):
+			return subt
 	
-	return subt
+	for subt in [subt for subt in t if not isinstance(subt[0], str)]:
+		return grep_next_subtree(subt, expr)
 
 def get_english_pos_seq(pos_seq: List[str]) -> str:
 	'''Remove unwanted info from English pos tags for comparison purposes and return as a string.'''
