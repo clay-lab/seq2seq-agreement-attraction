@@ -303,7 +303,7 @@ def exact_match(
 	return pred_sentence == gold_sentence
 
 @metric
-def main_verb_reinflected(
+def main_verb_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
@@ -348,7 +348,7 @@ def main_verb_reinflected(
 		)
 
 @metric
-def only_main_verb_reinflected(
+def only_main_verb_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
@@ -414,13 +414,13 @@ def only_main_verb_reinflected(
 				return True		
 
 @metric
-def agreement_attraction(
+def agreement_attraction_closest(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
 	tense: str
 ) -> Union[bool, 'NoneType']:
-	
+	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
 	if trn_lang == 'en' and tense == 'past':
@@ -499,6 +499,93 @@ def agreement_attraction(
 			# attraction occurs if the number of the final distractor differs from the number of the subject,
 			# and the verb is not correctly inflected (in which case it wouldn't pass the check above)
 			return True
+
+@metric
+def agreement_attraction_any(
+	pred_sentence: str,
+	gold_sentence: str,
+	trn_lang: str,
+	tense: str
+) -> Union[bool, 'NoneType']:
+	'''Is there agreement attraction with the closest preceding distractor?'''
+	# attraction doesn't mean anything if there's no possible evidence for it,
+	# so return None
+	if trn_lang == 'en' and tense == 'past':
+		return None
+	
+	# now, we parse the predicted sentence using the present tense grammar
+	# to determine whether there are any distractors
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	
+	# convert to lowercase and remove period at end for parsing purposes
+	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	
+	try:
+		# raises ValueError if a word does not exist in the grammar
+		# raises IndexError if all words exist but cannot be parsed
+		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
+	except (ValueError,IndexError):
+		# if the sentence cannot be parsed, we will not count it
+		# technically, it might still show attraction and also be wrong in some other way
+		# but we can figure that out later
+		return None
+	
+	# not implemented for other languages yet
+	if trn_lang == 'en':
+		# note that we are checking this here because we do not care if the verb is inflected wrong
+		# relative to the gold sentence for attraction.
+		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
+		# suppose the model changes the number of the distractor or the subject head noun. we might
+		# get attraction even though it would not be apparent from the gold sentence, which
+		# would not have this error
+		
+		# first, see if there are any distractors. if not, attraction is NA
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
+		N_positions = [
+			position 
+			for position in main_clause_subject.treepositions() 
+				if 	not isinstance(main_clause_subject[position], str) and
+					(
+						main_clause_subject[position].label().endswith('sg') or 
+						main_clause_subject[position].label().endswith('pl')
+					)
+		][1:]
+		
+		# this means there are no distractors, so therefore there cannot be attraction
+		if not N_positions:
+			return None
+		
+		# if there are distractors but the sentences match exactly, there is no attraction
+		if pred_sentence == gold_sentence:
+			return False
+		
+		# in case there are other differences between the sentences, we measure the attraction
+		# relative to the prediction itself as a failsafe
+		# get the main clause verb
+		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# get the subject number from the predicted sentence, since that's what we care about
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		
+		# no attraction in these cases, since there is correct agreement
+		if (
+			(subject_number == 'sg' and main_clause_verb.endswith('s')) or
+			(subject_number == 'pl' and not main_clause_verb.endswith('s'))
+		):
+			return False
+		
+		# attraction is defined as incorrect agreement with any distractor
+		for position in N_positions:
+			distractor_position = N_positions[-1]
+			distractor_number = re.findall(r'_(.*)', str(main_clause_subject[distractor_position].label()))[0]
+			
+			# the verb got messed up, and it's attraction since the number of the subjects don't match
+			if distractor_number != subject_number:
+				return True
+		else:
+			# if we're here, it means none of the distractors differ in number
+			# so the verb is messed up, but it's not attraction
+			return False
 
 def format_sentences(sentences: List[str]) -> List[str]:
 	'''
