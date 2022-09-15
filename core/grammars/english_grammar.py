@@ -99,8 +99,7 @@ def pres_or_past_no_pres_dist(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
 		subject_position = [
 			position 
 			for position in source.treepositions() 
-				if hasattr(source[position], '_label') and 
-					source[position].label().symbol() == 'NP'
+				if str(source[position].label()) == 'NP'
 		][0]
 		
 		for tree in [source, target]:
@@ -121,6 +120,7 @@ def test_file(grammar: PCFG = english_grammar, n: int = 10, filename: str = 'tes
 			out.write(', '.join(tup) + '\n\n')
 
 # This grammar IS ONLY USED FOR PARSING during evaluation
+# we include the past tense forms as well for parsing the embedded clauses, which are not reinflected
 english_grammar_pres_tense = PCFG.fromstring("""
 	S -> DP VP [1.0]
 	
@@ -138,16 +138,16 @@ english_grammar_pres_tense = PCFG.fromstring("""
 	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
 	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
 	
-	V -> 'help' [0.05] | 'helps' [0.05]
-	V -> 'visit' [0.05] | 'visits' [0.05] 
-	V -> 'like' [0.05] | 'likes' [0.05]
-	V -> 'bother' [0.05] | 'bothers' [0.05]
-	V -> 'inspire' [0.05] | 'inspires' [0.05]
-	V -> 'recruit' [0.05] | 'recruits' [0.05]
-	V -> 'assist' [0.05] | 'assists' [0.05]
-	V -> 'confound' [0.05] | 'confounds' [0.05]
-	V -> 'accost' [0.05] | 'accosts' [0.05]
-	V -> 'avoid' [0.05] | 'avoids' [0.05]
+	V -> 'help' [0.033] | 'helps' [0.033] | 'helped' [0.034]
+	V -> 'visit' [0.033] | 'visits' [0.033] | 'visited' [0.034] 
+	V -> 'like' [0.033] | 'likes' [0.033] | 'liked' [0.034]
+	V -> 'bother' [0.033] | 'bothers' [0.033] | 'bothered' [0.034]
+	V -> 'inspire' [0.033] | 'inspires' [0.033] | 'inspired' [0.034]
+	V -> 'recruit' [0.033] | 'recruits' [0.033] | 'recruited' [0.034]
+	V -> 'assist' [0.033] | 'assists' [0.033] | 'assisted' [0.034]
+	V -> 'confound' [0.033] | 'confounds' [0.033] | 'confounded' [0.034]
+	V -> 'accost' [0.033] | 'accosts' [0.033] | 'accosted' [0.034]
+	V -> 'avoid' [0.033] | 'avoids' [0.033] |  'avoided' [0.034]
 	
 	P -> 'of' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'with' [0.2]
 	

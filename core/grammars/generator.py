@@ -149,16 +149,20 @@ def grep_next_subtree(
 	:param expr: a regex to search when searching the tree
 	:returns Tree: the next highest subtree in t whose label's symbol matches expr
 	"""
-	for subt in t:
-		if hasattr(subt.label(), '_symbol'):
-			if re.search(expr, subt.label().symbol()):
-				return subt
-		elif re.search(expr, subt.label()):
-			return subt
+	try: 
+		return t[
+			min([
+				position
+				for position in t.treepositions()
+				if (
+					not isinstance(t[position],str) 
+					and re.search(expr, str(t[position].label()))
+				)
+			])
+		]
+	except ValueError:
+		return None
 	
-	for subt in [subt for subt in t if not isinstance(subt[0], str)]:
-		return grep_next_subtree(subt, expr)
-
 def get_english_pos_seq(pos_seq: List[str]) -> str:
 	'''Remove unwanted info from English pos tags for comparison purposes and return as a string.'''
 	pos_seq = [
