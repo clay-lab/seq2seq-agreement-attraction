@@ -326,10 +326,10 @@ def main_verb_reinflected(
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
 	
 	try:
-		# raises ValueError if unable to parse
-		breakpoint()
+		# raises ValueError if a word does not exist in the grammar
+		# raises IndexError if all words exist but cannot be parsed
 		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
-	except ValueError:
+	except (ValueError,IndexError):
 		# if the sentence cannot be parsed, we will not count it
 		# technically, it might still show attraction and also be wrong in some other way
 		# but we can figure that out later
@@ -371,9 +371,10 @@ def only_main_verb_reinflected(
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
 	
 	try:
-		# raises ValueError if unable to parse
+		# raises ValueError if a word doesn't exist
+		# raises IndexError if words exist but cannot be parsed
 		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
-	except ValueError:
+	except (ValueError,IndexError):
 		# if the sentence cannot be parsed, we will not count it
 		# technically, it might still show attraction and also be wrong in some other way
 		# but we can figure that out later
@@ -433,9 +434,10 @@ def agreement_attraction(
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
 	
 	try:
-		# raises ValueError if unable to parse
+		# raises ValueError if a word does not exist in the grammar
+		# raises IndexError if all words exist but cannot be parsed
 		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
-	except ValueError:
+	except (ValueError,IndexError):
 		# if the sentence cannot be parsed, we will not count it
 		# technically, it might still show attraction and also be wrong in some other way
 		# but we can figure that out later
