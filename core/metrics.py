@@ -305,7 +305,7 @@ def exact_match(
 @metric
 def main_verb_reinflected(
 	pred_sentence: str,
-	gald_sentence: str,
+	gold_sentence: str,
 	trn_lang: str,
 	tense: str
 ) -> bool:
@@ -349,7 +349,7 @@ def main_verb_reinflected(
 @metric
 def only_main_verb_reinflected(
 	pred_sentence: str,
-	gald_sentence: str,
+	gold_sentence: str,
 	trn_lang: str,
 	tense: str,
 	subject_number: str
@@ -488,7 +488,7 @@ def agreement_attraction(
 		# attraction is defined as incorrect agreement with the final distractor
 		# it could also involve intermediate distractors, but this will do for now
 		final_distractor_position = N_positions[-1]
-		final_distractor_number = re.findall(r'_(.*)', main_clause_subject[final_distractor_position])[0]
+		final_distractor_number = re.findall(r'_(.*)', str(main_clause_subject[final_distractor_position].label()))[0]
 		
 		# the verb got messed up, but it wasn't attraction since the nouns match
 		if final_distractor_number == subject_number:
