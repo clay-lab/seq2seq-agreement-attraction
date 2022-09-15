@@ -303,40 +303,121 @@ def exact_match(
 	return pred_sentence == gold_sentence
 
 @metric
-def first_word_match(
-	pred_sentence: str, 
-	gold_sentence: str
-) -> Union[bool,'NoneType']:
-	'''Does the first word of each sentence match? If either sentence is empty, returns None.'''
-	pred_words = pred_sentence.split()
-	gold_words = gold_sentence.split()
+def main_verb_reinflected(
+	pred_sentence: str,
+	gald_sentence: str,
+	trn_lang: str,
+	tense: str
+) -> bool:
+	'''Was the main verb correctly reinflected?'''	
+	# can't test for reinflection if we're not reinflecting
+	if trn_lang == 'en' and tense == 'past':
+		return None
 	
-	# this accounts for an instance when the model has predicted no text
-	if pred_words and gold_words:
-		return pred_words[0] == gold_words[0]
+	# if the sentences match, then reinflection was correct
+	if pred_sentence == gold_sentence:
+		return True
+	
+	# now, we parse the predicted sentence using the present tense grammar
+	# to determine the main verb
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	
+	# convert to lowercase and remove period at end for parsing purposes
+	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	
+	try:
+		# raises ValueError if unable to parse
+		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
+	except ValueError:
+		# if the sentence cannot be parsed, we will not count it
+		# technically, it might still show attraction and also be wrong in some other way
+		# but we can figure that out later
+		return None
+	
+	# not implemented for other languages yet
+	if trn_lang == 'en':
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		
+		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		return (
+			(subject_number == 'sg' and main_clause_verb.endswith('s')) or
+			(subject_number == 'pl' and not main_clause_verb.endswith('s'))
+		)
 
 @metric
-def second_word_match(
-	pred_sentence: str, 
-	gold_sentence: str
-) -> Union[bool,'NoneType']:
-	'''
-	Do the second words of each sentence match? 
-	If either sentence has only one word, returns None.
-	'''
-	pred_words = pred_sentence.split()
-	gold_words = gold_sentence.split()
+def only_main_verb_reinflected(
+	pred_sentence: str,
+	gald_sentence: str,
+	trn_lang: str,
+	tense: str,
+	subject_number: str
+) -> bool:
+	'''Was only the main verb correctly reinflected?'''	
+	# can't test for reinflection if we're not reinflecting
+	if trn_lang == 'en' and tense == 'past':
+		return None
 	
-	if len(pred_words) > 1 and len(gold_words) > 1:
-		return pred_words[1] == gold_words[1]
+	# if the sentences match, then reinflection was correct
+	if pred_sentence == gold_sentence:
+		return True
+	
+	# now, we parse the predicted sentence using the present tense grammar
+	# to determine whether there are any distractors
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	
+	# convert to lowercase and remove period at end for parsing purposes
+	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	
+	try:
+		# raises ValueError if unable to parse
+		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
+	except ValueError:
+		# if the sentence cannot be parsed, we will not count it
+		# technically, it might still show attraction and also be wrong in some other way
+		# but we can figure that out later
+		return None	
+	
+	# not implemented for other languages yet
+	if trn_lang == 'en':
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		
+		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# if even the main verb wasn't reinflected correctly, then NA
+		if not (
+			(subject_number == 'sg' and main_clause_verb.endswith('s')) or
+			(subject_number == 'pl' and not main_clause_verb.endswith('s'))
+		):
+			return None
+			
+		# if we're here, the main verb was reinflected correctly
+		# get the remainder and make sure they were not reinflected			
+		all_verbs = [
+			parsed_prediction[position]
+			for position in parsed_prediction.treepositions()
+			if 	not isinstance(parsed_prediction[position],str) and
+				re.search(r'^V$', parsed_prediction[position].label())
+		][1:]
+		
+		# if there are no other verbs, we will return None, since it doesn't
+		# make sense to ask if only the main verb was reinflected when it is the only verb
+		if all_verbs:
+			# if the verbs don't end with the past tense, they have been reinflected, too
+			# so not only the main verb was reinflected, and we return false
+			if not all(verb[0].endswith('ed') for verb in all_verbs):
+				return False
+			else:
+				return True		
 
 @metric
 def agreement_attraction(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
-	tense: str,
-	subject_number: str,
+	tense: str
 ) -> Union[bool, 'NoneType']:
 	
 	# attraction doesn't mean anything if there's no possible evidence for it,
@@ -344,21 +425,16 @@ def agreement_attraction(
 	if trn_lang == 'en' and tense == 'past':
 		return None
 	
-	# if the predicted sentence matches the gold sentence, no attraction has occurred
-	# since the gold sentence always has correct agreement
-	if pred_sentence == gold_sentence:
-		return False
-	
 	# now, we parse the predicted sentence using the present tense grammar
-	# to determine whether the difference is due to agreement attraction or not
+	# to determine whether there are any distractors
 	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
 	
+	# convert to lowercase and remove period at end for parsing purposes
+	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	
 	try:
-		# convert to lowercase and remove period at end for parsing purposes
-		pred_sentence = re.sub(r'\.$', '', pred_sentence.lower())
-		
 		# raises ValueError if unable to parse
-		parsed_prediction = list(parser.parse(pred_sentence))[-1]
+		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
 	except ValueError:
 		# if the sentence cannot be parsed, we will not count it
 		# technically, it might still show attraction and also be wrong in some other way
@@ -374,28 +450,43 @@ def agreement_attraction(
 		# get attraction even though it would not be apparent from the gold sentence, which
 		# would not have this error
 		
-		# get the main clause verb
-		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
-		
-		# no attraction in these cases
-		if (subject_number == 'sg' and main_clause_verb.endswith('s')) or \
-		   (subject_number == 'pl' and not main_clause_verb.endswith('s')):
-			return False
-		
-		# otherwise, we need to check the number of the distractor that immediately precedes the verb
-		# (technically, we could probably check for the number of any distractors, but this seems most relevant)
+		# first, see if there are any distractors. if not, attraction is NA
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
 		N_positions = [
 			position 
 			for position in main_clause_subject.treepositions() 
-				if 	main_clause_subject[position].label().endswith('sg') or 
-					main_clause_subject[position].label().endswith('pl')
+				if 	not isinstance(main_clause_subject[position], str) and
+					(
+						main_clause_subject[position].label().endswith('sg') or 
+						main_clause_subject[position].label().endswith('pl')
+					)
 		][1:]
 		
-		# this means there are no distractors
+		# this means there are no distractors, so therefore there cannot be attraction
 		if not N_positions:
 			return None
 		
+		# if there are distractors but the sentences match exactly, there is no attraction
+		if pred_sentence == gold_sentence:
+			return False
+		
+		# in case there are other differences between the sentences, we measure the attraction
+		# relative to the prediction itself as a failsafe
+		# get the main clause verb
+		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# get the subject number from the predicted sentence, since that's what we care about
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		
+		# no attraction in these cases, since there is correct agreement
+		if (
+			(subject_number == 'sg' and main_clause_verb.endswith('s')) or
+			(subject_number == 'pl' and not main_clause_verb.endswith('s'))
+		):
+			return False
+		
+		# attraction is defined as incorrect agreement with the final distractor
+		# it could also involve intermediate distractors, but this will do for now
 		final_distractor_position = N_positions[-1]
 		final_distractor_number = re.findall(r'_(.*)', main_clause_subject[final_distractor_position])[0]
 		
@@ -510,12 +601,10 @@ def compute_metrics(
 	# 	gold_line_indices = [i for i, line in enumerate(gold_jsons) if line['translation']['prefix'] == 'neg']
 	# 	gold_lines = [line for i, line in enumerate(gold_lines) if i in gold_line_indices]
 	# 	pred_lines = [line for i, line in enumerate(pred_lines) if i in gold_line_indices]
-	
 	trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
-	trn_lang 		= re.findall(r'pres-(.*?)-', trn_lang)[0]
-	tgt_lang 		= re.findall(r'pres_(.*?)-?.*?_', os.path.split(pred_file)[-1])[0]
+	trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
+	tgt_lang 		= re.findall(r'(.*?)_', os.path.split(pred_file)[-1])[0]
 	tense 			= [metadata_json['tense'] for metadata_json in metadata_jsons]
-	subject_number 	= [metadata_json['subject_number'] for metadata_json in metadata_jsons]
 	
 	props = {}
 	for m in tqdm(metrics):
@@ -527,8 +616,7 @@ def compute_metrics(
 			tgt_pos_seq=target_pos_seq,
 			trn_lang=trn_lang,
 			tgt_lang=tgt_lang,
-			tense=tense,
-			subject_number=subject_number
+			tense=tense
 		)
 		
 		props[m.name] = RETURN_RESULTS_MAP.get(return_results, lambda x: x.mean)(m)
