@@ -327,6 +327,7 @@ def main_verb_reinflected(
 	
 	try:
 		# raises ValueError if unable to parse
+		breakpoint()
 		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
 	except ValueError:
 		# if the sentence cannot be parsed, we will not count it
@@ -351,8 +352,7 @@ def only_main_verb_reinflected(
 	pred_sentence: str,
 	gold_sentence: str,
 	trn_lang: str,
-	tense: str,
-	subject_number: str
+	tense: str
 ) -> bool:
 	'''Was only the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
