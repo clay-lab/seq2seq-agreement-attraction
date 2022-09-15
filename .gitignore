@@ -7,6 +7,7 @@ outputs
 *.lock
 
 scripts/backup/
+scripts/clear_dataset_cache/
 scripts/old/
 scripts/*.txt
 scripts/**/*.txt
