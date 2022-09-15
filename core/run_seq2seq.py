@@ -668,7 +668,7 @@ def main():
 		title = [s for s in title if s][-1]
 		title = re.findall('(pres-.*)-.*?$', title)
 		title = title[0].replace('-', '_')
-		title = f'training: {title}, test: {re.findall("(pres_.*)_.*?", basename)[0]}'
+		title = f'training: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, basename + ".learning_curves.pdf")) as pdf:
 			common_kwargs = dict(x='iteration', ci=None)
