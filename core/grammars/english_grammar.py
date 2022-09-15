@@ -50,7 +50,9 @@ english_grammar = PCFG.fromstring("""
 	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
 	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
 	
-	V -> 'helped' [0.1] | 'visited' [0.1] | 'liked' [0.1] | 'bothered' [0.1] | 'inspired' [0.1] | 'recruited' [0.1] | 'assisted' [0.1] | 'confounded' [0.1] | 'accosted' [0.1] | 'avoided' [0.1]
+	V -> 'helped' [0.1] | 'visited' [0.1] | 'liked' [0.1] 
+	V -> 'bothered' [0.1] | 'inspired' [0.1] | 'recruited' [0.1] 
+	V -> 'assisted' [0.1] | 'confounded' [0.1] | 'accosted' [0.1] | 'avoided' [0.1]
 	
 	P -> 'of' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'with' [0.2]
 	
@@ -99,7 +101,7 @@ def pres_or_past_no_pres_dist(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
 		subject_position = [
 			position 
 			for position in source.treepositions() 
-				if str(source[position].label()) == 'NP'
+				if not isinstance(source[position],str) and str(source[position].label()) == 'NP'
 		][0]
 		
 		for tree in [source, target]:

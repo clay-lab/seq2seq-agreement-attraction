@@ -150,16 +150,17 @@ def grep_next_subtree(
 	:returns Tree: the next highest subtree in t whose label's symbol matches expr
 	"""
 	try: 
-		return t[
-			min([
+		return t[min(
+			[
 				position
 				for position in t.treepositions()
 				if (
 					not isinstance(t[position],str) 
 					and re.search(expr, str(t[position].label()))
 				)
-			])
-		]
+			], 
+			key=lambda e: (len(e),e)
+		)]
 	except ValueError:
 		return None
 	
@@ -410,32 +411,34 @@ def create_tense_datasets(
 	'''
 	configs = load_configs(configs) if configs is None or isinstance(configs,str) else configs
 	
-	for lang in configs:
-		print(f'Creating datasets for {lang}')
-		prob_map 		= configs[lang][0]
-		
-		# if we're loading from a file, we have to store these as strings,
-		# so we need to import the actual objects
-		if isinstance(configs[lang][1],str) and isinstance(configs[lang][2],str):
-			module1 		= configs[lang][1].split('.')[0]
-			module2 		= configs[lang][2].split('.')[0]
+	for lang in configs['langs']:
+		for dataset in configs['langs'][lang]:
+			print(f'Creating datasets for {lang}-{dataset}')
+			p = configs['langs'][lang][dataset][0]
+			splits = configs['langs'][lang][dataset][1]
 			
-			exec(f'from . import {module1}, {module2}')
+			# if we're loading from a file, we have to store these as strings,
+			# so we need to import the actual objects
+			if (
+				isinstance(configs['langs'][lang][dataset][2],str) and 
+				isinstance(configs['langs'][lang][dataset][3],str)
+			):
+				module1 		= configs['langs'][lang][dataset][2].split('.')[0]
+				module2 		= configs['langs'][lang][dataset][3].split('.')[0]
+				
+				exec(f'from core.grammars import {", ".join(set([module1, module2]))}')
+				
+				grammar 		= eval(configs['langs'][lang][dataset][2])
+				ex_generator 	= eval(configs['langs'][lang][dataset][3])
+			else:
+				grammar 		= configs['langs'][lang][dataset][2]
+				ex_generator 	= configs['langs'][lang][dataset][3]
 			
-			grammar 		= eval(configs[lang][1])
-			ex_generator 	= eval(configs[lang][2])
-		else:
-			grammar 		= configs[lang][1]
-			ex_generator 	= configs[lang][2]
-		
-		for dataset_type in prob_map:
-			p 			= prob_map[dataset_type][0]
-			splits 		= prob_map[dataset_type][1]
-			file_prefix = f'{dataset_type}_{lang}/{dataset_type}_{lang}'
+			file_prefix = f'{lang}_{dataset}/{lang}_{dataset}'
 			p_ex_generator = partial(ex_generator, pres_p=p)
 			create_dataset_json(grammar, p_ex_generator, file_prefix, **kwargs, **splits)
-		
-		print('')
+			
+			print('')
 
 """
 def combine_language_datasets_for_tense(
@@ -493,10 +496,10 @@ def create_and_combine_tense_datasets(
 	
 	create_tense_datasets(configs, **kwargs)
 	# combine_language_datasets_for_tense(list(configs.keys()), **kwargs)
-	create_t5_scripts(list(configs.keys()), **kwargs)
+	create_t5_scripts(configs, **kwargs)
 
 def create_t5_scripts(
-	langs: List[str] = None, 
+	configs: Dict = None, 
 	overwrite: bool = False
 ) -> None:
 	'''
@@ -505,7 +508,7 @@ def create_t5_scripts(
 	:params langs: (List[str]): a list of language abbreviations with files in the ./data/ directory.
 	
 	If no argument is passed, attempt to load the language ids from a file ./data/config.json
-	'''
+	'''	
 	script = '\n'.join([
 		'#!/bin/bash\n',
 		'#SBATCH --job-name=T5-base-finetune-tense-[TRAIN-LANG]',
@@ -528,9 +531,9 @@ def create_t5_scripts(
 		"	--model_name_or_path 't5-base' \\",
 		'	--do_train \\',
 		'	--task translation_src_to_tgt \\',
-		'	--train_file data/pres_[TRAIN_LANG]/pres_[TRAIN_LANG]_train.json.gz \\',
-		'	--validation_file data/pres_[DEV_LANG]/pres_[DEV_LANG]_dev.json.gz \\',
-		'	--output_dir outputs/t5-finetuning-pres-[TRAIN-LANG]-bs128/ \\',
+		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
+		'	--validation_file data/[DEV_LANG]/[DEV_LANG]_dev.json.gz \\',
+		'	--output_dir outputs/t5-finetuning-[TRAIN-LANG]-bs128/ \\',
 		'	--per_device_train_batch_size=4 \\',
 		'	--gradient_accumulation_steps=32 \\',
 		'	--per_device_eval_batch_size=16 \\',
@@ -550,9 +553,9 @@ def create_t5_scripts(
 		'	--predict_with_generate \\'
 	)
 	
-	langs 		= list(load_config(langs).keys()) if langs is None or isinstance(langs,str) else langs
-	all_pairs 	= list(permutations(langs, 2))
-	langs 		= [tuple([lang]) for lang in langs] + all_pairs
+	configs 	= load_config() if configs is None else configs
+	all_pairs 	= [tuple(pair) for pair in configs['pairs']] if 'pairs' in configs else []
+	langs 		= [(f'{lang}_{dataset}',f'{lang}_{dataset}') for lang in configs['langs'] for dataset in configs['langs'][lang]] + all_pairs
 	
 	# create directories if not existant
 	os.makedirs(os.path.join('scripts', 'finetune'), exist_ok=True)
@@ -564,29 +567,27 @@ def create_t5_scripts(
 		lang_ft_script = script
 		lang_ev_script = eval_script
 		
-		if len(lang) == 1:
-			train_lang 		= lang[0]
-			dev_lang 		= lang[0]
-			train_dash_lang = lang[0]
-			test_lang 		= lang[0]
-		else:
-			train_lang 		= '_'.join(lang)
-			dev_lang 		= lang[0]
-			train_dash_lang = '-'.join(lang)
-			test_lang 		= lang[1]
+		train_lang 		= lang[0]
+		dev_lang 		= lang[0]
+		train_dash_lang = lang[0].replace('_', '-')
+		test_lang 		= lang[1]
+		
+		file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
+		
+		# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
+		if lang[0] == lang[1]:
+			lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
+			lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
+			lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
+			if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh')) or overwrite:
+				with open(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh'), 'wt') as out_file:
+					out_file.write(lang_ft_script)
 				
-		lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
-		lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
-		lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
-		if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_pres_{train_lang}_bs128.sh')) or overwrite:
-			with open(os.path.join('scripts', 'finetune', f'finetune_t5_pres_{train_lang}_bs128.sh'), 'wt') as out_file:
-				out_file.write(lang_ft_script)
-			
 		lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
 		lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
 		lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-		if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_pres_{train_lang}_bs128.sh')) or overwrite:
-			with open(os.path.join('scripts', 'eval', f'eval_t5_pres_{train_lang}_bs128.sh'), 'wt') as out_file:
+		if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh')) or overwrite:
+			with open(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh'), 'wt') as out_file:
 				out_file.write(lang_ev_script)
 		
 		"""

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=T5-base-eval-tense-en-dist
+#SBATCH --job-name=T5-base-eval-tense-en-dist-pres
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -20,9 +20,9 @@ python core/run_seq2seq.py \
 	--model_name_or_path 't5-base' \
 	--do_learning_curve \
 	--task translation_src_to_tgt \
-	--train_file data/pres_en-dist/pres_en-dist_train.json.gz \
-	--validation_file data/pres_en-dist/pres_en-dist_test.json.gz \
-	--output_dir outputs/t5-finetuning-pres-en-dist-bs128/ \
+	--train_file data/en_dist-pres/en_dist-pres_train.json.gz \
+	--validation_file data/en_dist-pres/en_dist-pres_test.json.gz \
+	--output_dir outputs/t5-finetuning-en-dist-pres-bs128/ \
 	--per_device_train_batch_size=8 \
 	--per_device_eval_batch_size=16 \
 	--overwrite_output_dir \

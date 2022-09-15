@@ -1,28 +1,25 @@
 {
-	"en-dist": [
-		{
-			"pres": [
-				1, 
-				{ 
-					"test": 10000
-				}
-			]
-		},
-		"english_grammar.english_grammar",
-		"english_grammar.pres_or_past"
-	],
-	"en-nodist": [
-		{
-			"pres": [
+	"langs": {
+		"en": {
+			"nodist-pres-and-past": [
 				0.5,
 				{
 					"train": 100000,
 					"dev": 1000,
 					"test": 10000	
-				}
+				},
+				"english_grammar.english_grammar",
+				"english_grammar.pres_or_past_no_pres_dist"		
+			],
+			"dist-pres": [
+				1, 
+				{ 
+					"test": 10000
+				},
+				"english_grammar.english_grammar",
+				"english_grammar.pres_or_past"
 			]
-		},
-		"english_grammar.english_grammar",
-		"english_grammar.pres_or_past_no_pres_dist"
-	]
+		}
+	},
+	"pairs": [["en_nodist-pres-and-past", "en_dist-pres"]]
 }
