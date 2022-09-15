@@ -382,29 +382,28 @@ def create_tense_datasets(
 	'''
 	Create json datasets according to the passed configs.
 	:param configs: (List[Dict]): This should be in the following format:
-								   A dict mapping a language id to a List of arguments.
-								   Each list of arguments consists of a Dict mapping str to floats, a PCFG, and an example generator function.
-								   The dict maps strings to a list containing a float and a dictionary containing splits.
-								   Each float is passed to the ex_generator function, with splits mapping strings to numbers that define how many examples to create for each split
+								   A dict mapping a language id to a dict of datasets.
+								   Each dataset maps a label to a list of arguments.
+								   Each list of arguments consists of a float, a dict, a PCFG, and an example generator function.
+								   The dict maps strings to the number of examples for that split.
+								   The float is passed to the ex_generator function, with splits mapping strings to numbers that define how many examples to create for each split
 								   	when that float is passed to ex_generator.
 								   The PCFG is the grammar from which to generate examples.
 								   The example generator function should take the grammar and the probability of generating a present tense example as argument.
 								   example:
 								  		configs = {
-								  			'en': [
-									  			{
-									  				'pres': [
-									  					0.5, 
-									  					{
-									  						'train': 100000, 
-									  						'dev': 1000, 
-									  						'test': 10000
-									  					}
-									  				]
-									  			}, 
-									  			english_grammar.english_grammar,  
-									  			english_grammar.pres_or_past
-								  			]
+								  			'en': {
+								  				'pres': [
+								  					0.5, 
+								  					{
+								  						'train': 100000, 
+								  						'dev': 1000, 
+								  						'test': 10000
+								  					},
+								  					english_grammar.english_grammar,  
+								  					english_grammar.pres_or_past
+								  				]
+								  			}
 								  		 }
 	:param kwargs: passed to create_dataset_json
 	If no argument is passed, attempt to load the configs from a file ./data/config.json
