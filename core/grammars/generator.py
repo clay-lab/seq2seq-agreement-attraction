@@ -192,7 +192,11 @@ def get_english_example_metadata(
 	metadata = {}
 	
 	# definiteness of main clause subject
-	main_clause_subject = grep_next_subtree(source, r'^N_')
+	main_clause_subject = grep_next_subtree(source, r'^DP$')
+	while grep_next_subtree(main_clause_subject[0], r'^NP$'):
+		main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
+	
+	main_clause_subject = grep_next_subtree(main_clause_subject, r'^N_')
 	
 	# number of main clause subject
 	if main_clause_subject.label().symbol().endswith('sg'):
@@ -201,7 +205,12 @@ def get_english_example_metadata(
 		metadata.update({'subject_number': 'pl'})
 	
 	main_clause_verb_phrase = grep_next_subtree(source, r'^VP$')
-	main_clause_object = grep_next_subtree(main_clause_verb_phrase, r'^N_')
+	main_clause_object = grep_next_subtree(main_clause_verb_phrase, r'^DP$')
+	main_clause_object = grep_next_subtree(main_clause_object, r'^NP$')
+	while grep_next_subtree(main_clause_object[0], r'^NP$'):
+		main_clause_object = grep_next_subtree(main_clause_object[0], r'^NP$')
+	
+	main_clause_object = grep_next_subtree(main_clause_object, r'^N_')
 		
 	# number of main clause object
 	if main_clause_object.label().symbol().endswith('sg'):
@@ -214,47 +223,85 @@ def get_english_example_metadata(
 	metadata.update({'main_verb': main_clause_verb[0]})
 	
 	# number of total, singular, and plural noun phrases between the head noun of the subject and the verb
-	labels = get_labels(grep_next_subtree(source, r'^NP$'))
-	# then filter to the sg or pl nouns after that
-	distractors = [pos for pos in labels if pos.endswith('sg') or pos.endswith('pl')]
+	main_clause_full_subject = grep_next_subtree(source, r'^DP$')
+	main_clause_full_subject = grep_next_subtree(main_clause_full_subject, r'^NP$')
+	labels = get_labels(main_clause_full_subject)
 	
-	# subtract one from each to account for the actual head noun, which is not a distractor
-	metadata.update({
-		'total_distractors'	: max(len(distractors) - 1, 0),
-		'sg_distractors'	: max(len([pos for pos in distractors if pos.endswith('sg')]) - 1, 0),
-		'pl_distractors'	: max(len([pos for pos in distractors if pos.endswith('pl')]) - 1, 0),
-	})
+	intervener_positions = [
+		position 
+		for position in main_clause_full_subject.treepositions() 
+			if  hasattr(main_clause_full_subject[position], '_label') and
+				(
+					main_clause_full_subject[position].label().symbol().endswith('sg') or 
+					main_clause_full_subject[position].label().symbol().endswith('pl')
+				)
+	][1:]
 	
-	if metadata['total_distractors'] > 0:
-		# get the number of the final pre-verb distractor (if one exists)
-		main_clause_full_subject = grep_next_subtree(source, r'^NP$')
-		
-		final_distractor_position = [
-			position 
-			for position in main_clause_full_subject.treepositions() 
-				if  hasattr(main_clause_full_subject[position], '_label') and
-					(main_clause_full_subject[position].label().symbol().endswith('sg') or 
-					main_clause_full_subject[position].label().symbol().endswith('pl'))
-		][-1]
-		
-		final_distractor_number = re.findall(
-			r'_(.*)', main_clause_full_subject[final_distractor_position].label().symbol()
+	if intervener_positions:
+		final_intervener_number = re.findall(
+			r'_(.*)', main_clause_full_subject[intervener_positions[-1]].label().symbol()
 		)[0]
 		
-		metadata.update({'final_distractor_number': final_distractor_number})
+		metadata.update({'final_intervener_number': final_intervener_number})
+	else:
+		metadata.update({'final_intervener_number': None})
+	
+	# then filter to the sg or pl nouns after that
+	pre_main_verb_noun_labels = [pos for pos in labels if pos.endswith('sg') or pos.endswith('pl')]
+	
+	# since the first noun in the list represents the subject, we exclude everything that matches it,
+	# since matching nouns are not "distractors"
+	distractors = [l for l in pre_main_verb_noun_labels if not l == pre_main_verb_noun_labels[0]]
+	
+	# subtract one from each to account for the actual head noun, which is not a distractor
+	metadata.update({'n_distractors': len(distractors)})
+	
+	if metadata['n_distractors'] > 0:
+		# get the number of the final pre-verb intervening noun (if one exists)
+		# if there are any distractors
+		# (if they are all the same, there's no way it can be attraction, but we are
+		# interested in attraction if there are intermediate distractors)
+		# first position is the subject
 		
-		# is the distractor in a relative clause or a PP (or both)?
-		distractor_pos_seq = get_english_pos_seq(get_pos_labels(main_clause_full_subject))
-		if '[C]' in distractor_pos_seq and '[P]' in distractor_pos_seq:
-			distractor_structure = 'both'
-		elif '[C]' in distractor_pos_seq:
-			distractor_structure = 'RC'
-		elif '[P]' in distractor_pos_seq:
-			distractor_structure = 'PP'
-		else:
-			distractor_structure = '???'
+		# are the distractors in RCs or PPs or both?
+		distractor_positions = [
+			pos 
+			for pos in intervener_positions
+				if not re.findall(r'^N_(.*)$', str(main_clause_full_subject[pos].label())) == metadata['subject_number']
+		]
 		
-		metadata.update({'distractor_structure': distractor_structure})
+		distractor_path_labels = [
+			set([
+				str(main_clause_full_subject[path[:i]].label()) 
+				for i, _ in enumerate(path)
+					if str(main_clause_full_subject[path[:i]].label()) in ['CP', 'PP']
+			])
+			for path in distractor_positions
+		]
+		
+		distractor_structures = ['both' if len(ls) == 2 else ''.join(ls) for ls in distractor_path_labels]
+		
+		if distractor_structures == []: breakpoint()
+		
+		# if we've done all late attachment, it gives us a weird result. since the models aren't getting structures
+		# we want to treat this like early attachment, which means rewriting some stuff
+		if len(set(distractor_structures)) > 1:
+			for i, _ in enumerate(distractor_structures[1:]):
+				prev_distractor_structure = distractor_structures[i]
+				if distractor_structures[i+1] != prev_distractor_structure:
+					distractor_structures[i+1] = 'both'
+		
+		metadata.update({
+			'each_distractor_structure': ','.join(distractor_structures),
+			'distractor_structures': 'both' if len(set(distractor_structures)) == 2 else ','.join(set(distractor_structures)),
+			'final_distractor_structure': distractor_structures[-1]
+		})
+	else:
+		metadata.update({
+			'each_distractor_structure': None,
+			'distractor_structures': None,
+			'final_distractor_structure': None,
+		})
 	
 	# get pos seq with details suppressed	
 	pos_seq = get_english_pos_seq(get_pos_labels(source))

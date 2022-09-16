@@ -662,12 +662,19 @@ def main():
 		
 		eval_preds 	= pd.concat([pd.read_csv(eval_file) for eval_file in eval_files], ignore_index=True)
 		
-		grouping_vars = [k for k in list(metadata[0].keys()) if not 'pos_seq' in k and not k == 'tense']
+		grouping_vars = [
+			k 
+			for k in list(metadata[0].keys()) 
+				if 	not 'pos_seq' in k and 
+					not k == 'tense' and 
+					not k == 'each_distractor_structure' and 
+					not k == 'object_number'
+		]
 		
 		title = os.path.split(training_args.output_dir)
 		title = [s for s in title if s][-1]
-		title = re.findall('(pres-.*)-.*?$', title)
-		title = title[0].replace('-', '_')
+		title = re.findall('finetuning-(.*)-.*?$', title)
+		title = title[0].replace('-', '_', 1)
 		title = f'training: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, basename + ".learning_curves.pdf")) as pdf:

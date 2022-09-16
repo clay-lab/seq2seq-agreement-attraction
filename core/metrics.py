@@ -337,8 +337,11 @@ def main_verb_reinflected_correctly(
 	
 	# not implemented for other languages yet
 	if trn_lang == 'en':
-		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
-		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
+			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
+	
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(main_clause_subject, r'^N_').label())[0]
 		
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
@@ -382,8 +385,11 @@ def only_main_verb_reinflected_correctly(
 	
 	# not implemented for other languages yet
 	if trn_lang == 'en':
-		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
-		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
+			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
+		
+		subject_number = re.findall(r'_(.*)', grep_next_subtree(main_clause_subject, r'^N_').label())[0]
 		
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
@@ -453,19 +459,25 @@ def agreement_attraction_closest(
 		# would not have this error
 		
 		# first, see if there are any distractors. if not, attraction is NA
-		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
-		N_positions = [
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
+		
+		main_clause_subject_number = grep_next_subtree(main_clause_subject, r'^NP$')
+		while grep_next_subtree(main_clause_subject_number[0], r'^NP$'):
+			main_clause_subject_number = grep_next_subtree(main_clause_subject_number[0], r'^NP$')
+	
+		main_clause_subject_number = str(grep_next_subtree(main_clause_subject_number, r'^N_').label())
+		
+		distractor_positions = [
 			position 
 			for position in main_clause_subject.treepositions() 
 				if 	not isinstance(main_clause_subject[position], str) and
-					(
-						main_clause_subject[position].label().endswith('sg') or 
-						main_clause_subject[position].label().endswith('pl')
-					)
-		][1:]
+					re.search(r'_(sg|pl)$', str(main_clause_subject[position].label())) and
+					not str(main_clause_subject[position].label()) == main_clause_subject_number
+		]
 		
 		# this means there are no distractors, so therefore there cannot be attraction
-		if not N_positions:
+		if not distractor_positions:
 			return None
 		
 		# if there are distractors but the sentences match exactly, there is no attraction
@@ -478,7 +490,7 @@ def agreement_attraction_closest(
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
 		# get the subject number from the predicted sentence, since that's what we care about
-		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		subject_number = re.findall(r'_(.*)', main_clause_subject_number)[0]
 		
 		# no attraction in these cases, since there is correct agreement
 		if (
@@ -487,18 +499,30 @@ def agreement_attraction_closest(
 		):
 			return False
 		
-		# attraction is defined as incorrect agreement with the final distractor
-		# it could also involve intermediate distractors, but this will do for now
-		final_distractor_position = N_positions[-1]
-		final_distractor_number = re.findall(r'_(.*)', str(main_clause_subject[final_distractor_position].label()))[0]
+		# attraction is defined as incorrect agreement with the final intervener for this metric
+		N_positions = [
+			position 
+			for position in main_clause_subject.treepositions() 
+				if 	not isinstance(main_clause_subject[position], str) and
+					re.search(r'_(sg|pl)$', str(main_clause_subject[position].label()))
+		][1:]
 		
-		# the verb got messed up, but it wasn't attraction since the nouns match
-		if final_distractor_number == subject_number:
+		final_intervener_position = N_positions[-1]
+		final_intervener_number = re.findall(r'_(.*)', str(main_clause_subject[final_intervener_position].label()))[0]
+		
+		# the verb got messed up, but it wasn't attraction to closest since the nouns match
+		if final_intervener_number == subject_number:
 			return False
-		else:
+		elif (
+			(final_intervener_number == 'sg' and main_clause_verb.endswith('s')) or
+			(final_intervener_number == 'pl' and not main_clause_verb.endswith('s'))
+		):
 			# attraction occurs if the number of the final distractor differs from the number of the subject,
 			# and the verb is not correctly inflected (in which case it wouldn't pass the check above)
 			return True
+		else:
+			# the verb was messed up, but not in the way consistent with attraction
+			return False
 
 @metric
 def agreement_attraction_any(
@@ -540,19 +564,25 @@ def agreement_attraction_any(
 		# would not have this error
 		
 		# first, see if there are any distractors. if not, attraction is NA
-		main_clause_subject = grep_next_subtree(parsed_prediction, r'^NP$')
-		N_positions = [
+		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
+		
+		main_clause_subject_number = grep_next_subtree(main_clause_subject, r'^NP$')
+		while grep_next_subtree(main_clause_subject_number[0], r'^NP$'):
+			main_clause_subject_number = grep_next_subtree(main_clause_subject_number[0], r'^NP$')
+		
+		main_clause_subject_number = str(grep_next_subtree(main_clause_subject_number, r'^N_').label())
+		
+		distractor_positions = [
 			position 
 			for position in main_clause_subject.treepositions() 
 				if 	not isinstance(main_clause_subject[position], str) and
-					(
-						main_clause_subject[position].label().endswith('sg') or 
-						main_clause_subject[position].label().endswith('pl')
-					)
-		][1:]
+					re.search(r'_(sg|pl)$', str(main_clause_subject[position].label())) and
+					not str(main_clause_subject[position].label()) == main_clause_subject_number
+		]
 		
 		# this means there are no distractors, so therefore there cannot be attraction
-		if not N_positions:
+		if not distractor_positions:
 			return None
 		
 		# if there are distractors but the sentences match exactly, there is no attraction
@@ -565,7 +595,7 @@ def agreement_attraction_any(
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
 		# get the subject number from the predicted sentence, since that's what we care about
-		subject_number = re.findall(r'_(.*)', grep_next_subtree(parsed_prediction, r'^N_').label())[0]
+		subject_number = re.findall(r'_(.*)', main_clause_subject_number)[0]
 		
 		# no attraction in these cases, since there is correct agreement
 		if (
@@ -575,12 +605,16 @@ def agreement_attraction_any(
 			return False
 		
 		# attraction is defined as incorrect agreement with any distractor
-		for position in N_positions:
+		for position in distractor_positions:
 			distractor_position = N_positions[-1]
 			distractor_number = re.findall(r'_(.*)', str(main_clause_subject[distractor_position].label()))[0]
 			
-			# the verb got messed up, and it's attraction since the number of the subjects don't match
-			if distractor_number != subject_number:
+			# the verb got messed up, and it's attraction since the number of the subjects doesn't match
+			if (
+				distractor_number != subject_number and 
+				(distractor_number == 'sg' and main_clause_verb.endswith('s')) or
+				(distractor_number == 'pl' and not main_clause_verb.endswith('s'))
+			):
 				return True
 		else:
 			# if we're here, it means none of the distractors differ in number
