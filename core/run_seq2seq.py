@@ -709,57 +709,57 @@ def main():
 						sns.lineplot(**plot_kwargs)
 						
 						if var is not None or c == metric_names[-1]:
-						ax = plt.gca()
-						
-						# add count for each condition to legend
-						legend_kwargs = dict(fontsize=8)
-						
-						handles, labels = ax.get_legend_handles_labels()
-						if var is not None:
-							counts = plot_kwargs['data'][var].value_counts()
-							counts.index = counts.index.astype(str) # cast to string for boolean and int indices
-							labels = [label + f' ($n={counts[label]}$)'for label in labels]
-						else:
-							# this is for the overall plot
-							# since we plot each line one at a time due to the data format, we end up with a lot of
-							# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
-							indices = [
-										i for i, label in enumerate(labels + [None]) 
-										if not label == None and 
-										   label == (labels + [None])[i+1] or
-										   (
-										   		(label in ['pres', 'past'] and 
-										   		i > len(labels)-3)
-										   )
-									]
-							handles = [handles[i] for i in indices]
-							labels = [labels[i] for i in indices]
-						
-						legend_kwargs.update(dict(handles=handles, labels=labels))
-						
-						ax.legend(**legend_kwargs)
-						ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
-						
-						# set axis ticks and limits for display
-						plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
-						_, ymargin = ax.margins()
-						ax.set_ylim((0-ymargin, 1+ymargin))
-						
-						# set ylabel
-						ax.set_ylabel('proportion')
-						
-						fig = plt.gcf()
-						fig.set_size_inches(8, 6)
-						suptitle = f'{title}' 
-						suptitle += (
-							f', groups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
-							if var is not None 
-							else ''
-						)
-						fig.suptitle(suptitle)
-						pdf.savefig(bbox_inches='tight')
-						plt.close()
-						del fig
+							ax = plt.gca()
+							
+							# add count for each condition to legend
+							legend_kwargs = dict(fontsize=8)
+							
+							handles, labels = ax.get_legend_handles_labels()
+							if var is not None:
+								counts = plot_kwargs['data'][var].value_counts()
+								counts.index = counts.index.astype(str) # cast to string for boolean and int indices
+								labels = [label + f' ($n={counts[label]}$)'for label in labels]
+							else:
+								# this is for the overall plot
+								# since we plot each line one at a time due to the data format, we end up with a lot of
+								# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
+								indices = [
+											i for i, label in enumerate(labels + [None]) 
+											if not label == None and 
+											   label == (labels + [None])[i+1] or
+											   (
+											   		(label in ['pres', 'past'] and 
+											   		i > len(labels)-3)
+											   )
+										]
+								handles = [handles[i] for i in indices]
+								labels = [labels[i] for i in indices]
+							
+							legend_kwargs.update(dict(handles=handles, labels=labels))
+							
+							ax.legend(**legend_kwargs)
+							ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
+							
+							# set axis ticks and limits for display
+							plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
+							_, ymargin = ax.margins()
+							ax.set_ylim((0-ymargin, 1+ymargin))
+							
+							# set ylabel
+							ax.set_ylabel('proportion')
+							
+							fig = plt.gcf()
+							fig.set_size_inches(8, 6)
+							suptitle = f'{title}' 
+							suptitle += (
+								f', groups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
+								if var is not None 
+								else ''
+							)
+							fig.suptitle(suptitle)
+							pdf.savefig(bbox_inches='tight')
+							plt.close()
+							del fig
 					else:
 						log.warning(f'All results of "{c}" are NaN. No plot will be created. If this is unexpected, check your metric.')
 					
