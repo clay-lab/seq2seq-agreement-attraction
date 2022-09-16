@@ -606,8 +606,7 @@ def agreement_attraction_any(
 		
 		# attraction is defined as incorrect agreement with any distractor
 		for position in distractor_positions:
-			distractor_position = N_positions[-1]
-			distractor_number = re.findall(r'_(.*)', str(main_clause_subject[distractor_position].label()))[0]
+			distractor_number = re.findall(r'_(.*)', str(main_clause_subject[position].label()))[0]
 			
 			# the verb got messed up, and it's attraction since the number of the subjects doesn't match
 			if (
