@@ -761,7 +761,8 @@ def main():
 							plt.close()
 							del fig
 					else:
-						logger.warning(f'All results of "{c}" are NaN. No plot will be created. If this is unexpected, check your metric.')
+						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}). No plot will be created.')
+						logger.warning('If this is unexpected, check your metric.')
 					
 if __name__ == '__main__':
 	
