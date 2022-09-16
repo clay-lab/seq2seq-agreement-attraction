@@ -678,35 +678,37 @@ def main():
 		title = f'training: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, basename + ".learning_curves.pdf")) as pdf:
-			common_kwargs = dict(x='iteration', ci=None)
+			common_kwargs = dict(x='iteration', errorbar=None)
 			
 			# var is None is used for an overall plot without groups
 			for var in [None] + grouping_vars:
 				for c in metric_names:
-					plot_kwargs = common_kwargs.copy()
-					plot_kwargs.update(dict(y=c))
-					plot_kwargs.update(dict(
-						data = eval_preds
-								if var is None 
-								else eval_preds.assign(
-									**{
-										var: 
-										[
-											' + '.join([p, str(v)]) 
-											if not (isinstance(v,float) and np.isnan(v)) 
-											else np.nan 
-												for p, v in zip(eval_preds.tense, eval_preds[var])
-										]
-									}
-								).sort_values(var).reset_index(drop=True)
-						))
-					plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue=var))
-					if var is None:
-						plot_kwargs.update(dict(style='tense'))
-					
-					sns.lineplot(**plot_kwargs)
-					
-					if var is not None or c == metric_names[-1]:
+					# if all values are na, no plot can or should be created
+					if not all(eval_preds[c].isna()):
+						plot_kwargs = common_kwargs.copy()
+						plot_kwargs.update(dict(y=c))
+						plot_kwargs.update(dict(
+							data = eval_preds
+									if var is None 
+									else eval_preds.assign(
+										**{
+											var: 
+											[
+												' + '.join([p, str(v)]) 
+												if not (isinstance(v,float) and np.isnan(v)) 
+												else np.nan 
+													for p, v in zip(eval_preds.tense, eval_preds[var])
+											]
+										}
+									).sort_values(var).reset_index(drop=True)
+							))
+						plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue=var))
+						if var is None:
+							plot_kwargs.update(dict(style='tense'))
+						
+						sns.lineplot(**plot_kwargs)
+						
+						if var is not None or c == metric_names[-1]:
 						ax = plt.gca()
 						
 						# add count for each condition to legend
@@ -758,7 +760,9 @@ def main():
 						pdf.savefig(bbox_inches='tight')
 						plt.close()
 						del fig
-
+					else:
+						log.warning(f'All results of "{c}" are NaN. No plot will be created. If this is unexpected, check your metric.')
+					
 if __name__ == '__main__':
 	
 	main()
