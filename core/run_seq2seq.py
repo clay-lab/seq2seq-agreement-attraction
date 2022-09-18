@@ -716,7 +716,9 @@ def main():
 							
 							handles, labels = ax.get_legend_handles_labels()
 							if var is not None:
-								counts = plot_kwargs['data'][var].value_counts()
+								# filter to the min iteration for the value counts, otherwise we end up multiplying
+								# the counts by the number of checkpoints
+								counts = plot_kwargs['data'][plot_kwargs['data'][plot_kwargs.iteration == plot_kwargs.iteration.min()][var].value_counts()
 								counts.index = counts.index.astype(str) # cast to string for boolean and int indices
 								labels = [label + f' ($n={counts[label]}$)'for label in labels]
 							else:
