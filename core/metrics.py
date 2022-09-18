@@ -338,6 +338,7 @@ def main_verb_reinflected_correctly(
 	# not implemented for other languages yet
 	if trn_lang == 'en':
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
 			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
 	
@@ -386,6 +387,7 @@ def only_main_verb_reinflected_correctly(
 	# not implemented for other languages yet
 	if trn_lang == 'en':
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
 			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
 		

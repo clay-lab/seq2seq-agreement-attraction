@@ -193,6 +193,7 @@ def get_english_example_metadata(
 	
 	# definiteness of main clause subject
 	main_clause_subject = grep_next_subtree(source, r'^DP$')
+	main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 	while grep_next_subtree(main_clause_subject[0], r'^NP$'):
 		main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
 	
