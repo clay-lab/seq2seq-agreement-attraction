@@ -679,7 +679,7 @@ def main():
 		title = title[0].replace('-', '_', 1)
 		title = f'training: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
-		with PdfPages(os.path.join(training_args.output_dir, basename + ".learning_curves.pdf")) as pdf:
+		with PdfPages(os.path.join(training_args.output_dir, f'{basename}.learning_curves.pdf')) as pdf:
 			common_kwargs = dict(x='iteration', errorbar=None)
 			
 			# var is None is used for an overall plot without groups
@@ -690,83 +690,91 @@ def main():
 						plot_kwargs = common_kwargs.copy()
 						plot_kwargs.update(dict(y=c))
 						plot_kwargs.update(dict(
-							data = eval_preds
-									if var is None 
-									else eval_preds.assign(
-										**{
-											var: 
-											[
-												' + '.join([p, str(v)]) 
-												if not (isinstance(v,float) and np.isnan(v)) 
-												else np.nan 
-													for p, v in zip(eval_preds.tense, eval_preds[var])
-											]
-										}
-									).sort_values(var).reset_index(drop=True)
-							))
-						plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue=var))
-						if var is None:
-							plot_kwargs.update(dict(style='tense'))
+							data = eval_preds[['iteration', c, 'tense']]
+								if var is None 
+								else eval_preds.assign(
+									var = [
+										' + '.join([p, str(v)]) 
+										if not (isinstance(v,float) and np.isnan(v)) 
+										else ' + '.join([p, 'None']) 
+											for p, v in zip(eval_preds.tense, eval_preds[var])
+									]
+								).sort_values(var).reset_index(drop=True)[['iteration', c, 'var']]
+						))
 						
-						sns.lineplot(**plot_kwargs)
+						# filter to only the stuff that can actually be plotted (bc you can't plot something
+						# that doesn't exist!)
+						plot_kwargs['data'] = plot_kwargs['data'][(~plot_kwargs['data'][c].isna())].reset_index(drop=True)
+						if var is not None:
+							plot_kwargs['data'] = plot_kwargs['data'][(~plot_kwargs['data']['var'].isna())].reset_index(drop=True)
 						
-						if var is not None or c == metric_names[-1]:
-							ax = plt.gca()
+						if not plot_kwargs['data'].empty:
+							plot_kwargs.update(dict(label=c.replace('_', ' ')) if var is None else dict(hue='var'))
+							if var is None:
+								plot_kwargs.update(dict(style='tense'))
 							
-							# add count for each condition to legend
-							legend_kwargs = dict(fontsize=8)
+							sns.lineplot(**plot_kwargs)
 							
-							handles, labels = ax.get_legend_handles_labels()
-							if var is not None:
-								# filter to the min iteration for the value counts, otherwise we end up multiplying
-								# the counts by the number of checkpoints
-								counts = plot_kwargs['data'][plot_kwargs['data'].iteration == plot_kwargs['data'].iteration.min()][var].value_counts()
-								counts.index = counts.index.astype(str) # cast to string for boolean and int indices
-								labels = [label + f' ($n={counts[label]}$)'for label in labels]
-							else:
-								# this is for the overall plot
-								# since we plot each line one at a time due to the data format, we end up with a lot of
-								# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
-								# indices = [
-								# 			i 
-								# 			for i, label in enumerate(labels + [None]) 
-								# 				if 	not label == None and 
-								# 			   		label == (labels + [None])[i+1] or
-								# 			   		(
-								# 			   			(label in ['pres', 'past'] and 
-								# 			   			i > len(labels)-3)
-								# 			   		)
-								# 		]
-								# get the list of unique labels, and exclude the task prefix variable
-								indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
-								handles = [handles[i] for i in indices]
-								labels = [labels[i] for i in indices]
+							if var is not None or c == metric_names[-1]:
+								ax = plt.gca()
+								
+								legend_kwargs = dict(fontsize=8)
+								
+								handles, labels = ax.get_legend_handles_labels()
+								if var is not None:
+									# add count for each condition to legend
+									# filter to the min iteration for the value counts, otherwise we end up multiplying
+									# the counts by the number of checkpoints
+									counts = plot_kwargs['data'][plot_kwargs['data'].iteration == plot_kwargs['data'].iteration.min()]['var'].value_counts()
+									counts.index = counts.index.astype(str) # cast to string for boolean and int indices
+									labels = [label + f' ($n={counts[label]}$)'for label in labels]
+								else:
+									# this is for the overall plot
+									# since we plot each line one at a time due to the data format, we end up with a lot of
+									# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
+									# indices = [
+									# 			i 
+									# 			for i, label in enumerate(labels + [None]) 
+									# 				if 	not label == None and 
+									# 			   		label == (labels + [None])[i+1] or
+									# 			   		(
+									# 			   			(label in ['pres', 'past'] and 
+									# 			   			i > len(labels)-3)
+									# 			   		)
+									# 		]
+									# get the list of unique labels, and exclude the task prefix variable
+									indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
+									handles = [handles[i] for i in indices]
+									labels = [labels[i] for i in indices]
 							
-							legend_kwargs.update(dict(handles=handles, labels=labels))
-							
-							ax.legend(**legend_kwargs)
-							ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
-							
-							# set axis ticks and limits for display
-							plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
-							_, ymargin = ax.margins()
-							ax.set_ylim((0-ymargin, 1+ymargin))
-							
-							# set ylabel
-							ax.set_ylabel('proportion')
-							
-							fig = plt.gcf()
-							fig.set_size_inches(8, 6)
-							suptitle = f'{title}' 
-							suptitle += (
-								f', groups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
-								if var is not None 
-								else ''
-							)
-							fig.suptitle(suptitle)
-							pdf.savefig(bbox_inches='tight')
-							plt.close()
-							del fig
+								legend_kwargs.update(dict(handles=handles, labels=labels))
+								
+								ax.legend(**legend_kwargs)
+								ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
+								
+								# set axis ticks and limits for display
+								plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
+								_, ymargin = ax.margins()
+								ax.set_ylim((0-ymargin, 1+ymargin))
+								
+								# set ylabel
+								ax.set_ylabel('proportion')
+								
+								fig = plt.gcf()
+								fig.set_size_inches(8, 6)
+								suptitle = f'{title}' 
+								suptitle += (
+									f'\ngroups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
+									if var is not None 
+									else ''
+								)
+								fig.suptitle(suptitle)
+								pdf.savefig(bbox_inches='tight')
+								plt.close()
+								del fig
+						else:
+							logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}). No plot will be created.')
+							logger.warning('If this is unexpected, check your metric.')
 					else:
 						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}). No plot will be created.')
 						logger.warning('If this is unexpected, check your metric.')
