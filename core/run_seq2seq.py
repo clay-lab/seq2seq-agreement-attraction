@@ -726,15 +726,18 @@ def main():
 								# this is for the overall plot
 								# since we plot each line one at a time due to the data format, we end up with a lot of
 								# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
-								indices = [
-											i for i, label in enumerate(labels + [None]) 
-											if not label == None and 
-											   label == (labels + [None])[i+1] or
-											   (
-											   		(label in ['pres', 'past'] and 
-											   		i > len(labels)-3)
-											   )
-										]
+								# indices = [
+								# 			i 
+								# 			for i, label in enumerate(labels + [None]) 
+								# 				if 	not label == None and 
+								# 			   		label == (labels + [None])[i+1] or
+								# 			   		(
+								# 			   			(label in ['pres', 'past'] and 
+								# 			   			i > len(labels)-3)
+								# 			   		)
+								# 		]
+								# get the list of unique labels, and exclude the task prefix variable
+								indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
 								handles = [handles[i] for i in indices]
 								labels = [labels[i] for i in indices]
 							
