@@ -661,6 +661,7 @@ def main():
 		]
 		
 		eval_preds 	= pd.concat([pd.read_csv(eval_file) for eval_file in eval_files], ignore_index=True)
+		eval_preds.to_csv(os.path.join(training_args.output_dir, f'{basename}.eval_results_seq2seq.csv.gz'), index=False)
 		
 		grouping_vars = [
 			k 
