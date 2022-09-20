@@ -154,7 +154,7 @@ def grep_next_subtree(
 		if not isinstance(t[position],str) and re.search(expr, str(t[position].label())):
 			return t[position]
 
-def get_english_pos_seq(pos_seq: List[str]) -> str:
+def get_english_RC_PP_pos_seq(pos_seq: List[str]) -> str:
 	'''Remove unwanted info from English pos tags for comparison purposes and return as a string.'''
 	pos_seq = [
 		pos_tag
@@ -166,7 +166,7 @@ def get_english_pos_seq(pos_seq: List[str]) -> str:
 	
 	return pos_seq 
 
-def get_english_example_metadata(
+def get_english_RC_PP_example_metadata(
 	source: Tree,
 	pfx: str,
 	target: Tree
@@ -305,7 +305,7 @@ def get_english_example_metadata(
 		})
 	
 	# get pos seq with details suppressed	
-	pos_seq = get_english_pos_seq(get_pos_labels(source))
+	pos_seq = get_english_RC_PP_pos_seq(get_pos_labels(source))
 	metadata.update({'pos_sequence': pos_seq})
 	
 	metadata.update({'tense': pfx})
@@ -325,7 +325,7 @@ def get_example_metadata(
 	:returns metadata: a dictionary recording language-specific properties for the example
 	"""
 	function_map = {
-		'en': get_english_example_metadata,
+		'en_RC_PP': get_english_RC_PP_example_metadata,
 	}
 	
 	metadata = function_map.get(grammar.lang, lambda: {})(*args, **kwargs)
@@ -430,7 +430,7 @@ def create_tense_datasets(
 								   The example generator function should take the grammar and the probability of generating a present tense example as argument.
 								   example:
 								  		configs = {
-								  			'en': {
+								  			'en_RC_PP': {
 								  				'pres': [
 								  					0.5, 
 								  					{
@@ -438,8 +438,8 @@ def create_tense_datasets(
 								  						'dev': 1000, 
 								  						'test': 10000
 								  					},
-								  					english_grammar.english_grammar,  
-								  					english_grammar.pres_or_past
+								  					english_grammar_RC_PP.english_grammar_RC_PP,  
+								  					english_grammar_RC_PP.pres_or_past
 								  				]
 								  			}
 								  		 }

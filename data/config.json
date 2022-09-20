@@ -1,6 +1,6 @@
 {
 	"langs": {
-		"en": {
+		"en_RC_PP": {
 			"nodist-pres-and-past": [
 				0.5,
 				{
@@ -8,18 +8,18 @@
 					"dev": 1000,
 					"test": 10000	
 				},
-				"english_grammar.english_grammar",
-				"english_grammar.pres_or_past_no_pres_dist"		
+				"english_grammar_RC_PP.english_grammar_RC_PP",
+				"english_grammar_RC_PP.pres_or_past_no_pres_dist"		
 			],
 			"dist-pres": [
 				1, 
 				{ 
 					"test": 10000
 				},
-				"english_grammar.english_grammar",
-				"english_grammar.pres_or_past"
+				"english_grammar_RC_PP.english_grammar_RC_PP",
+				"english_grammar_RC_PP.pres_or_past"
 			]
 		}
 	},
-	"pairs": [["en_nodist-pres-and-past", "en_dist-pres"]]
+	"pairs": [["en_RC_PP_nodist-pres-and-past", "en_RC_PP_dist-pres"]]
 }
