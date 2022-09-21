@@ -727,7 +727,7 @@ def compute_metrics(
 	# 	pred_lines = [line for i, line in enumerate(pred_lines) if i in gold_line_indices]
 	trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
 	trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
-	tgt_lang 		= re.findall(r'(.*?)_', os.path.split(pred_file)[-1])[0]
+	tgt_lang 		= re.findall(r'(.*?)-', os.path.split(pred_file)[-1])[0]
 	tense 			= [metadata_json['tense'] for metadata_json in metadata_jsons]
 	
 	props = {}

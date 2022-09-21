@@ -21,5 +21,5 @@
 			]
 		}
 	},
-	"pairs": [["en_RC_PP_nodist-pres-and-past", "en_RC_PP_dist-pres"]]
+	"pairs": [["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"]]
 }

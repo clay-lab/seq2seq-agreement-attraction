@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=T5-base-finetune-tense-en-nodist-pres-and-past
+#SBATCH --job-name=T5-base-finetune-tense-en_RC_PP-nodist-pres-and-past
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -20,9 +20,9 @@ python core/run_seq2seq.py \
 	--model_name_or_path 't5-base' \
 	--do_train \
 	--task translation_src_to_tgt \
-	--train_file data/en_nodist-pres-and-past/en_nodist-pres-and-past_train.json.gz \
-	--validation_file data/en_nodist-pres-and-past/en_nodist-pres-and-past_dev.json.gz \
-	--output_dir outputs/t5-finetuning-en-nodist-pres-and-past-bs128/ \
+	--train_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_train.json.gz \
+	--validation_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_dev.json.gz \
+	--output_dir outputs/t5-finetuning-en_RC_PP-nodist-pres-and-past-bs128/ \
 	--per_device_train_batch_size=4 \
 	--gradient_accumulation_steps=32 \
 	--per_device_eval_batch_size=16 \

@@ -471,7 +471,7 @@ def create_tense_datasets(
 				grammar 		= configs['langs'][lang][dataset][2]
 				ex_generator 	= configs['langs'][lang][dataset][3]
 			
-			file_prefix = f'{lang}_{dataset}/{lang}_{dataset}'
+			file_prefix = f'{lang}-{dataset}/{lang}-{dataset}'
 			p_ex_generator = partial(ex_generator, pres_p=p)
 			create_dataset_json(grammar, p_ex_generator, file_prefix, **kwargs, **splits)
 			
@@ -514,7 +514,7 @@ def combine_language_datasets_for_tense(
 		print('')
 """
 
-def create_and_combine_tense_datasets(
+def create_datasets_from_config(
 	configs: Dict[str,List] = None, 
 	**kwargs
 ) -> None:
@@ -548,7 +548,7 @@ def create_t5_scripts(
 	'''	
 	script = '\n'.join([
 		'#!/bin/bash\n',
-		'#SBATCH --job-name=T5-base-finetune-tense-[TRAIN-LANG]',
+		'#SBATCH --job-name=T5-base-finetune-tense-[TRAIN_LANG]',
 		'#SBATCH --output=joblogs/%x_%j.txt',
 		'#SBATCH --nodes=1',
 		'#SBATCH --cpus-per-task=1',
@@ -570,7 +570,7 @@ def create_t5_scripts(
 		'	--task translation_src_to_tgt \\',
 		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
 		'	--validation_file data/[DEV_LANG]/[DEV_LANG]_dev.json.gz \\',
-		'	--output_dir outputs/t5-finetuning-[TRAIN-LANG]-bs128/ \\',
+		'	--output_dir outputs/t5-finetuning-[TRAIN_LANG]-bs128/ \\',
 		'	--per_device_train_batch_size=4 \\',
 		'	--gradient_accumulation_steps=32 \\',
 		'	--per_device_eval_batch_size=16 \\',
@@ -592,7 +592,7 @@ def create_t5_scripts(
 	
 	configs 	= load_config() if configs is None else configs
 	all_pairs 	= [tuple(pair) for pair in configs['pairs']] if 'pairs' in configs else []
-	langs 		= [(f'{lang}_{dataset}',f'{lang}_{dataset}') for lang in configs['langs'] for dataset in configs['langs'][lang]] + all_pairs
+	langs 		= [(f'{lang}-{dataset}',f'{lang}-{dataset}') for lang in configs['langs'] for dataset in configs['langs'][lang]] + all_pairs
 	
 	# create directories if not existant
 	os.makedirs(os.path.join('scripts', 'finetune'), exist_ok=True)
@@ -605,7 +605,7 @@ def create_t5_scripts(
 		
 		train_lang 		= lang[0]
 		dev_lang 		= lang[0]
-		train_dash_lang = lang[0].replace('_', '-')
+		# train_dash_lang = lang[0].replace('_', '-')
 		test_lang 		= lang[1]
 		
 		file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
@@ -619,7 +619,7 @@ def create_t5_scripts(
 			):
 				lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
 				lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
-				lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
+				# lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
 				if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh')) or overwrite:
 					with open(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh'), 'wt') as out_file:
 						out_file.write(lang_ft_script)
@@ -627,7 +627,7 @@ def create_t5_scripts(
 			if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
 				lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
 				lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
-				lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
+				# lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
 				if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh')) or overwrite:
 					with open(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh'), 'wt') as out_file:
 						out_file.write(lang_ev_script)
