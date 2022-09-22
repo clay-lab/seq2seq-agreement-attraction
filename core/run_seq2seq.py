@@ -662,7 +662,7 @@ def main():
 		
 		eval_preds 	= pd.concat([pd.read_csv(eval_file) for eval_file in eval_files], ignore_index=True)
 		eval_preds 	= eval_preds.sort_values('iteration', kind='stable').reset_index(drop=True)
-		eval_preds.to_csv(os.path.join(training_args.output_dir, f'{basename}.eval_results_seq2seq.csv.gz'), index=False)
+		eval_preds.to_csv(os.path.join(training_args.output_dir, f'{basename}.eval_results_seq2seq.csv.gz'), index=False, na_rep='NaN')
 		
 		grouping_vars = [
 			k 
