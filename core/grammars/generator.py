@@ -447,7 +447,7 @@ def create_tense_datasets(
 	:param kwargs: passed to create_dataset_json
 	If no argument is passed, attempt to load the configs from a file ./data/config.json
 	'''
-	configs = load_configs(configs) if configs is None or isinstance(configs,str) else configs
+	configs = load_config(configs) if configs is None or isinstance(configs,str) else configs
 	
 	for lang in configs['langs']:
 		for dataset in configs['langs'][lang]:

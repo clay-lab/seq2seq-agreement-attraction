@@ -32,7 +32,7 @@
 		}
 	},
 	"pairs": [
-		["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"]
+		["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"],
 		["en_RC_PP-nodist-pres-and-past", "en_RC_PP_gen-dist-pres"]
 	]
 }
