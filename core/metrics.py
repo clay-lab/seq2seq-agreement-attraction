@@ -16,14 +16,17 @@ from collections import defaultdict
 
 GRAMMARS = {
 	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP,
+	'en_RC_PP_gen': english_grammar_RC_PP.english_grammar_RC_PP_gen,
 }
 
 GRAMMARS_PARSING = {
-	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP_pres_tense
+	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP_pres_tense,
+	'en_RC_PP_gen': english_grammar_RC_PP.english_grammar_RC_PP_pres_tense_gen,
 }
 
 POS_SEQ_FUNCS = {
 	'en_RC_PP': get_english_RC_PP_pos_seq,
+	'en_RC_PP_gen': get_english_RC_PP_pos_seq
 }
 
 # language-specific lowercase functions
@@ -311,7 +314,7 @@ def main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if trn_lang == 'en_RC_PP' and tense == 'past':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -336,7 +339,7 @@ def main_verb_reinflected_correctly(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang == 'en_RC_PP':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -360,7 +363,7 @@ def only_main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was only the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if trn_lang == 'en_RC_PP' and tense == 'past':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -385,7 +388,7 @@ def only_main_verb_reinflected_correctly(
 		return None	
 	
 	# not implemented for other languages yet
-	if trn_lang == 'en_RC_PP':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -431,7 +434,7 @@ def agreement_attraction_closest(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if trn_lang == 'en_RC_PP' and tense == 'past':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
@@ -452,7 +455,7 @@ def agreement_attraction_closest(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang == 'en_RC_PP':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
@@ -536,7 +539,7 @@ def agreement_attraction_any(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if trn_lang == 'en_RC_PP' and tense == 'past':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
@@ -557,7 +560,7 @@ def agreement_attraction_any(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang == 'en_RC_PP':
+	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,

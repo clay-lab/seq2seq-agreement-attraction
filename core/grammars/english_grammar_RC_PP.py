@@ -16,21 +16,29 @@ from .keybaseddefaultdict import KeyBasedDefaultDict
 # based on the value of the key passed to it
 # override for specific verbs that display non-default behavior as below
 PAST_PRES = {
-	'sg': KeyBasedDefaultDict(lambda s: s.replace('ed', 's')),
-	'pl': KeyBasedDefaultDict(lambda s: s.replace('ed',  ''))
+	'sg': KeyBasedDefaultDict(lambda s: re.sub(r'ed$', 's', s)),
+	'pl': KeyBasedDefaultDict(lambda s: re.sub(r'ed$', '', s)),
 }
 
 PAST_PRES['sg'].update({
-	k: k.replace('ed', 'es') for k in [
+	k: re.sub(r'ed$', 'es', k) for k in [
 		'liked', 
 		'inspired',
+		'faced',
+		'predated',
+		'eclipsed',
+		'shaded',
 	]
 })
 
 PAST_PRES['pl'].update({
-	k: k.replace('ed', 'e') for k in [
+	k: re.sub(r'ed$', 'e', k) for k in [
 		'liked', 
 		'inspired',
+		'faced',
+		'predated',
+		'eclipsed',
+		'shaded',
 	]
 })
 
@@ -60,6 +68,33 @@ english_grammar_RC_PP = PCFG.fromstring("""
 	C -> 'that' [1.0]
 """)
 setattr(english_grammar_RC_PP, 'lang', 'en_RC_PP')
+
+english_grammar_RC_PP_gen = PCFG.fromstring("""
+	S -> DP VP [1.0]
+	
+	DP -> D NP [1.0]
+	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
+	N -> N_sg [0.5] | N_pl [0.5]
+	
+	VP -> V DP [1.0]
+	
+	PP -> P DP [1.0]
+	CP -> C VP [1.0]
+	
+	D -> 'the' [1.0]
+	
+	N_sg -> 'house' [0.25]  | 'shed' [0.25]  | 'tree' [0.25]  | 'machine' [0.25]
+	N_pl -> 'houses' [0.25] | 'sheds' [0.25] | 'trees' [0.25] | 'machines' [0.25] 
+	
+	V -> 'blocked' [0.1] | 'dwarfed' [0.1] | 'overlooked' [0.1] 
+	V -> 'faced' [0.1] | 'predated' [0.1] | 'eclipsed' [0.1] 
+	V -> 'concealed' [0.1] | 'shaded' [0.1] | 'overshadowed' [0.1] | 'adjoined' [0.1]
+	
+	P -> 'beside' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'around' [0.2]
+	
+	C -> 'that' [1.0]
+""")
+setattr(english_grammar_RC_PP_gen, 'lang', 'en_RC_PP_gen')
 
 def present_pair(grammar: PCFG) -> Tuple:
 	past_tree = generate(grammar)
@@ -162,7 +197,7 @@ def test(grammar: PCFG = english_grammar_RC_PP, ex_generator: Callable = pres_or
 	t = format_tree_string(t)
 	print(f'\n\t{s}\n\t\u27f6 {p}: {t}\n')
 
-# This grammar IS ONLY USED FOR PARSING during evaluation
+# These grammars ARE ONLY USED FOR PARSING during evaluation
 # we include the past tense forms as well for parsing the embedded clauses, which are not reinflected
 english_grammar_RC_PP_pres_tense = PCFG.fromstring("""
 	S -> DP VP [1.0]
@@ -197,3 +232,37 @@ english_grammar_RC_PP_pres_tense = PCFG.fromstring("""
 	C -> 'that' [1.0]
 """)
 setattr(english_grammar_RC_PP_pres_tense, 'lang', 'en_RC_PP')
+
+english_grammar_RC_PP_pres_tense_gen = PCFG.fromstring("""
+	S -> DP VP [1.0]
+	
+	DP -> D NP [1.0]
+	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
+	N -> N_sg [0.5] | N_pl [0.5]
+	
+	VP -> V DP [1.0]
+	
+	PP -> P DP [1.0]
+	CP -> C VP [1.0]
+	
+	D -> 'the' [1.0]
+	
+	N_sg -> 'house' [0.25]  | 'shed' [0.25]  | 'tree' [0.25]  | 'machine' [0.25]
+	N_pl -> 'houses' [0.25] | 'sheds' [0.25] | 'trees' [0.25] | 'machines' [0.25] 
+	
+	V -> 'blocked' [0.033] | 'blocks' [0.033] | 'block' [0.034]
+	V -> 'dwarfed' [0.033] | 'dwarfs' [0.033] | 'dwarf' [0.034]
+	V -> 'overlooked' [0.033] | 'overlooks' [0.033] | 'overlook' [0.034] 
+	V -> 'faced' [0.033] | 'faces' [0.033] | 'face' [0.034] 
+	V -> 'predated' [0.033] | 'predates' [0.033] | 'predate' [0.034]
+	V -> 'eclipsed' [0.033] | 'eclipses' [0.033] | 'eclipse' [0.034] 
+	V -> 'concealed' [0.033] | 'conceals' [0.033] | 'conceal' [0.034] 
+	V -> 'shaded' [0.033] | 'shades' [0.033] | 'shade' [0.034]
+	V -> 'overshadowed' [0.033] | 'overshadows' [0.033] | 'overshadow' [0.034]
+	V -> 'adjoined' [0.033] | 'adjoins' [0.033] | 'adjoin' [0.034]
+	
+	P -> 'beside' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'around' [0.2]
+	
+	C -> 'that' [1.0]
+""")
+setattr(english_grammar_RC_PP, 'lang', 'en_RC_PP_gen')

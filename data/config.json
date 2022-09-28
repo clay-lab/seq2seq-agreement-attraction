@@ -19,7 +19,20 @@
 				"english_grammar_RC_PP.english_grammar_RC_PP",
 				"english_grammar_RC_PP.pres_or_past"
 			]
+		},
+		"en_RC_PP_gen": {
+			"dist-pres": [
+				1,
+				{
+					"test": 10000
+				},
+				"english_grammar_RC_PP.english_grammar_RC_PP_gen",
+				"english_grammar_RC_PP.pres_or_past"
+			]
 		}
 	},
-	"pairs": [["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"]]
+	"pairs": [
+		["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"]
+		["en_RC_PP-nodist-pres-and-past", "en_RC_PP_gen-dist-pres"]
+	]
 }

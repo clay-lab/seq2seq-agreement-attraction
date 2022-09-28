@@ -326,6 +326,7 @@ def get_example_metadata(
 	"""
 	function_map = {
 		'en_RC_PP': get_english_RC_PP_example_metadata,
+		'en_RC_PP_gen': get_english_RC_PP_example_metadata,
 	}
 	
 	metadata = function_map.get(grammar.lang, lambda: {})(*args, **kwargs)
