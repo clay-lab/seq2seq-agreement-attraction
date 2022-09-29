@@ -309,7 +309,7 @@ def exact_match(
 def main_verb_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
-	trn_lang: str,
+	tgt_lang: str,
 	tense: str
 ) -> bool:
 	'''Was the main verb correctly reinflected?'''	
