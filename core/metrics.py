@@ -539,6 +539,7 @@ def agreement_attraction_any(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
+	breakpoint()
 	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
