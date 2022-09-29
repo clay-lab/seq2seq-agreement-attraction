@@ -314,7 +314,7 @@ def main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -323,7 +323,7 @@ def main_verb_reinflected_correctly(
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine the main verb
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
@@ -339,7 +339,7 @@ def main_verb_reinflected_correctly(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -358,12 +358,12 @@ def main_verb_reinflected_correctly(
 def only_main_verb_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
-	trn_lang: str,
+	tgt_lang: str,
 	tense: str
 ) -> bool:
 	'''Was only the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -372,7 +372,7 @@ def only_main_verb_reinflected_correctly(
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
@@ -388,7 +388,7 @@ def only_main_verb_reinflected_correctly(
 		return None	
 	
 	# not implemented for other languages yet
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -428,18 +428,18 @@ def only_main_verb_reinflected_correctly(
 def agreement_attraction_closest(
 	pred_sentence: str,
 	gold_sentence: str,
-	trn_lang: str,
+	tgt_lang: str,
 	tense: str
 ) -> Union[bool, 'NoneType']:
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
@@ -455,7 +455,7 @@ def agreement_attraction_closest(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
@@ -533,19 +533,19 @@ def agreement_attraction_closest(
 def agreement_attraction_any(
 	pred_sentence: str,
 	gold_sentence: str,
-	trn_lang: str,
+	tgt_lang: str,
 	tense: str
 ) -> Union[bool, 'NoneType']:
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
 	breakpoint()
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[trn_lang])
+	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
 	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
@@ -561,7 +561,7 @@ def agreement_attraction_any(
 		return None
 	
 	# not implemented for other languages yet
-	if trn_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
