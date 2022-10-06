@@ -701,7 +701,7 @@ def main():
 										else ' + '.join([p, 'None']) 
 											for p, v in zip(eval_preds.tense, eval_preds[var])
 									]
-								).sort_values(var).reset_index(drop=True)[['iteration', c, 'var']]
+								).sort_values(['iteration',var]).reset_index(drop=True)[['iteration', c, 'var']]
 						))
 						
 						# filter to only the stuff that can actually be plotted (bc you can't plot something
@@ -725,9 +725,13 @@ def main():
 								handles, labels = ax.get_legend_handles_labels()
 								if var is not None:
 									# add count for each condition to legend
-									# filter to the min iteration for the value counts, otherwise we end up multiplying
-									# the counts by the number of checkpoints
-									counts = plot_kwargs['data'][plot_kwargs['data'].iteration == plot_kwargs['data'].iteration.min()]['var'].value_counts()
+									# sometimes a metric is NA because of the model's prediction 
+									# at a particular iteration. however, it's impractical to show
+									# the counts for each group for each iteration. we choose the 
+									# most recent value for the group as a compromise, since this
+									# reflects the most recent state of the model's predictions,
+									# even though it might be inaccurate for earlier steps
+									counts = plot_kwargs['data'].groupby('iteration').value_counts(['var']).groupby(['var']).last()
 									counts.index = counts.index.astype(str) # cast to string for boolean and int indices
 									labels = [label + f' ($n={counts[label]}$)'for label in labels]
 								else:
@@ -775,10 +779,12 @@ def main():
 								plt.close()
 								del fig
 						else:
-							logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}). No plot will be created.')
+							logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
+							logger.warning('No plot will be created.')
 							logger.warning('If this is unexpected, check your metric.')
 					else:
-						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}). No plot will be created.')
+						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
+						logger.warning('No plot will be created.')
 						logger.warning('If this is unexpected, check your metric.')
 					
 if __name__ == '__main__':
