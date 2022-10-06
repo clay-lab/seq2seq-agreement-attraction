@@ -667,10 +667,12 @@ def main():
 		grouping_vars = [
 			k 
 			for k in list(metadata[0].keys()) 
-				if 	not 'pos_seq' in k and 
-					not k == 'tense' and 
-					not k == 'each_distractor_structure' and 
-					not k == 'object_number'
+				if 	not any(x in k for x in ['pos_seq', 'history']) and
+					not k in [
+						'tense', 
+						'each_distractor_structure', 
+						'object_number'
+					]
 		]
 		
 		title = os.path.split(training_args.output_dir)
