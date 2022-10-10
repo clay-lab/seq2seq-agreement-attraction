@@ -350,6 +350,7 @@ def main_verb_reinflected_correctly(
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
 		return (
+			not main_clause_verb.endswith('ed') and
 			(subject_number == 'sg' and main_clause_verb.endswith('s')) or
 			(subject_number == 'pl' and not main_clause_verb.endswith('s'))
 		)
@@ -397,6 +398,10 @@ def only_main_verb_reinflected_correctly(
 		subject_number = re.findall(r'_(.*)', grep_next_subtree(main_clause_subject, r'^N_').label())[0]
 		
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# the main clause verb hasn't been reinflected at all
+		if main_clause_verb.endswith('ed'):
+			return None
 		
 		# if even the main verb wasn't reinflected correctly, then NA
 		if not (
@@ -494,6 +499,10 @@ def agreement_attraction_closest(
 		# get the main clause verb
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
 		
+		# no reinflection, so attraction isn't a thing
+		if main_clause_verb.endswith('ed'):
+			return None
+		
 		# get the subject number from the predicted sentence, since that's what we care about
 		subject_number = re.findall(r'_(.*)', main_clause_subject_number)[0]
 		
@@ -547,7 +556,7 @@ def agreement_attraction_any(
 	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -598,6 +607,10 @@ def agreement_attraction_any(
 		# relative to the prediction itself as a failsafe
 		# get the main clause verb
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
+		
+		# the verb has not been reinflected, so attraction is not a thing
+		if main_clause_verb.endswith('ed'):
+			return None
 		
 		# get the subject number from the predicted sentence, since that's what we care about
 		subject_number = re.findall(r'_(.*)', main_clause_subject_number)[0]
