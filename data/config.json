@@ -29,10 +29,23 @@
 				"english_grammar_RC_PP.english_grammar_RC_PP_gen",
 				"english_grammar_RC_PP.pres_or_past"
 			]
+		},
+		"en_RC_PP_sm": {
+			"nodist-pres-and-past": [
+				0.5,
+				{
+					"train": 10000,
+					"dev": 1000
+				},
+				"english_grammar_RC_PP.english_grammar_RC_PP",
+				"english_grammar_RC_PP.pres_or_past_no_pres_dist"		
+			]
 		}
 	},
 	"pairs": [
 		["en_RC_PP-nodist-pres-and-past", "en_RC_PP-dist-pres"],
-		["en_RC_PP-nodist-pres-and-past", "en_RC_PP_gen-dist-pres"]
+		["en_RC_PP-nodist-pres-and-past", "en_RC_PP_gen-dist-pres"],
+		["en_RC_PP_sm-nodist-pres-and-past", "en_RC_PP-dist-pres"],
+		["en_RC_PP_sm-nodist-pres-and-past", "en_RC_PP_gen-dist-pres"]
 	]
 }
