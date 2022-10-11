@@ -275,7 +275,6 @@ def main():
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
 	
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-	
 	if (
 		os.path.exists(training_args.output_dir)
 		and os.listdir(training_args.output_dir)
@@ -304,8 +303,6 @@ def main():
 	if is_main_process(training_args.local_rank):
 		transformers.utils.logging.set_verbosity_info()
 	
-	logger.info("Training/evaluation parameters %s", training_args)
-	
 	# Set seed before initializing model.
 	set_seed(training_args.seed)
 	
@@ -332,7 +329,7 @@ def main():
 				extension 			= file.split(".")[-1]
 				if extension == 'gz':
 					extension 		= file.split('.')[-2]
-			
+		
 		datasets = load_dataset(extension, data_files=data_files)
 	
 	# See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
@@ -391,9 +388,14 @@ def main():
 	# Preprocessing the datasets.
 	# We need to tokenize inputs and targets.
 	if training_args.do_train:
+		num_rows = datasets['train'].num_rows
+		save_steps = int((num_rows*training_args.num_train_epochs)/(training_args.per_device_train_batch_size*training_args.gradient_accumulation_steps)/15)
+		training_args.save_steps = save_steps
 		column_names = datasets["train"].column_names
 	else:
 		column_names = datasets["validation"].column_names
+	
+	logger.info("Training/evaluation parameters %s", training_args)
 	
 	# For translation we set the codes of our source and target languages (only useful for mBART, the others will
 	# ignore those attributes).
