@@ -15,27 +15,34 @@ from statistics import mean
 from collections import defaultdict
 
 GRAMMARS = {
-	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP,
-	'en_RC_PP_gen': english_grammar_RC_PP.english_grammar_RC_PP_gen,
-	'en_VN_98': english_grammar_VN_98.english_grammar_VN_98
+	'en_RC_PP'		: english_grammar_RC_PP.english_grammar_RC_PP,
+	'en_RC_PP_gen'	: english_grammar_RC_PP.english_grammar_RC_PP_gen,
+	'en_VN_98'		: english_grammar_VN_98.english_grammar_VN_98,
+	'en_FVN_02'		: english_grammar_FVN_02.english_grammar_FVN_02
 }
 
 GRAMMARS_PARSING = {
 	'en_RC_PP'		: english_grammar_RC_PP.english_grammar_RC_PP_pres_tense,
 	'en_RC_PP_gen'	: english_grammar_RC_PP.english_grammar_RC_PP_pres_tense_gen,
 	'en_VN_98'		: english_grammar_VN_98.english_grammar_VN_98,
+	'en_FVN_02'		: english_grammar_FVN_02.english_grammar_FVN_02,
 }
 
 PARSERS = {
-	'en_RC_PP': nltk.parse.ViterbiParser,
-	'en_RC_PP_gen': nltk.parse.ViterbiParser,
-	'en_VN_98': nltk.parse.ChartParser,
+	'en_RC_PP'		: nltk.parse.ViterbiParser,
+	'en_RC_PP_gen'	: nltk.parse.ViterbiParser,
+	'en_VN_98'		: nltk.parse.ChartParser,
+	'en_FVN_02'		: nltk.parse.ChartParser,
 }
 
 POS_SEQ_FUNCS = {
 	'en_RC_PP': get_english_RC_PP_pos_seq,
 	'en_RC_PP_gen': get_english_RC_PP_pos_seq
 }
+
+CURRENTLY_SUPPORTED = [
+	'en_RC_PP', 'en_RC_PP_gen', 'en_VN_98', 'en_FVN_02'
+]
 
 # language-specific lowercase functions
 LOWERCASE = defaultdict(lambda: lambda s: s.lower())
@@ -322,7 +329,7 @@ def main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
+	if tgt_lang in CURRENTLY_SUPPORTED and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -347,7 +354,7 @@ def main_verb_reinflected_correctly(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
+	if tgt_lang in CURRENTLY_SUPPORTED:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -372,7 +379,7 @@ def only_main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was only the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
+	if tgt_lang in CURRENTLY_SUPPORTED and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -397,7 +404,7 @@ def only_main_verb_reinflected_correctly(
 		return None	
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
+	if tgt_lang in CURRENTLY_SUPPORTED:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -447,7 +454,7 @@ def agreement_attraction_closest(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
+	if tgt_lang in CURRENTLY_SUPPORTED and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
@@ -468,7 +475,7 @@ def agreement_attraction_closest(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
+	if tgt_lang in CURRENTLY_SUPPORTED:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
@@ -556,7 +563,7 @@ def agreement_attraction_any(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
+	if tgt_lang in CURRENTLY_SUPPORTED and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
@@ -577,7 +584,7 @@ def agreement_attraction_any(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
+	if tgt_lang in CURRENTLY_SUPPORTED:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
