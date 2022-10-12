@@ -17,11 +17,19 @@ from collections import defaultdict
 GRAMMARS = {
 	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP,
 	'en_RC_PP_gen': english_grammar_RC_PP.english_grammar_RC_PP_gen,
+	'en_VN_98': english_grammar_VN_98.english_grammar_VN_98
 }
 
 GRAMMARS_PARSING = {
-	'en_RC_PP': english_grammar_RC_PP.english_grammar_RC_PP_pres_tense,
-	'en_RC_PP_gen': english_grammar_RC_PP.english_grammar_RC_PP_pres_tense_gen,
+	'en_RC_PP'		: english_grammar_RC_PP.english_grammar_RC_PP_pres_tense,
+	'en_RC_PP_gen'	: english_grammar_RC_PP.english_grammar_RC_PP_pres_tense_gen,
+	'en_VN_98'		: english_grammar_VN_98.english_grammar_VN_98,
+}
+
+PARSERS = {
+	'en_RC_PP': nltk.parse.ViterbiParser,
+	'en_RC_PP_gen': nltk.parse.ViterbiParser,
+	'en_VN_98': nltk.parse.ChartParser,
 }
 
 POS_SEQ_FUNCS = {
@@ -314,7 +322,7 @@ def main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -323,10 +331,10 @@ def main_verb_reinflected_correctly(
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine the main verb
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
+	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())	
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -339,7 +347,7 @@ def main_verb_reinflected_correctly(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -364,7 +372,7 @@ def only_main_verb_reinflected_correctly(
 ) -> bool:
 	'''Was only the main verb correctly reinflected?'''	
 	# can't test for reinflection if we're not reinflecting
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
 		return None
 	
 	# if the sentences match, then reinflection was correct
@@ -373,10 +381,10 @@ def only_main_verb_reinflected_correctly(
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
+	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())	
 	
 	try:
 		# raises ValueError if a word doesn't exist
@@ -389,7 +397,7 @@ def only_main_verb_reinflected_correctly(
 		return None	
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
 		main_clause_subject = grep_next_subtree(parsed_prediction, r'^DP$')
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
@@ -439,15 +447,15 @@ def agreement_attraction_closest(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
+	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())	
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())	
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -460,7 +468,7 @@ def agreement_attraction_closest(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
@@ -548,15 +556,15 @@ def agreement_attraction_any(
 	'''Is there agreement attraction with the closest preceding distractor?'''
 	# attraction doesn't mean anything if there's no possible evidence for it,
 	# so return None
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen'] and tense == 'past':
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98'] and tense == 'past':
 		return None
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
-	parser = nltk.parse.ViterbiParser(GRAMMARS_PARSING[tgt_lang])
+	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' \.$', '', pred_sentence.lower())
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -569,7 +577,7 @@ def agreement_attraction_any(
 		return None
 	
 	# not implemented for other languages yet
-	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen']:
+	if tgt_lang in ['en_RC_PP', 'en_RC_PP_gen', 'en_VN_98']:
 		# note that we are checking this here because we do not care if the verb is inflected wrong
 		# relative to the gold sentence for attraction.
 		# instead, we care if it is inflected wrong relative to the predicted sentence. for instance,
