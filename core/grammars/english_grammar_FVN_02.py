@@ -4,7 +4,6 @@
 from nltk import CFG
 
 english_grammar_FVN_02 = CFG.fromstring("""
-	Q -> VP S
 	S -> DP VP
 	
 	DP -> D NP
@@ -42,7 +41,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	N_pl -> 'threats' | 'presidents' | 'companies' | 'tours' | 'monuments' | 'trains' | 'trucks'
 	N_pl -> 'bridges' | 'streams'     
 	
-	V -> 'do' | 'does' | 'seem'
+	V -> 'seem' | 'seems'
 	
 	P -> 'from' | 'of' | 'by' | 'for' | 'about' | 'with' | 'in' | 'on' | 'around' | 'over' | 'to' | 'near' 
 	
