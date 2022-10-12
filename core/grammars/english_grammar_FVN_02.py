@@ -10,7 +10,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	NP -> N | NP PP
 	N -> N_sg | N_pl
 	
-	VP -> V | V ADJ
+	VP -> V ADJ
 	PP -> P DP
 	
 	D -> 'the' | 'my'
