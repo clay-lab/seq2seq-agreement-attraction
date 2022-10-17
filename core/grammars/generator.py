@@ -606,7 +606,6 @@ def create_scripts(
 	os.makedirs(os.path.join('scripts', 'eval'), exist_ok=True)
 	
 	for lang in langs:
-		print(f'Creating scripts for {" -> ".join(lang)}')
 		for model in ALL_MODELS:
 			# create the scripts for each language and pair of languages
 			lang_ft_script = script.replace('[MODEL]', model)
@@ -620,6 +619,7 @@ def create_scripts(
 			file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
 			
 			if os.path.isfile(os.path.join('data', train_lang, f'{train_lang}_train.json.gz')):
+				print(f'Creating scripts for {" -> ".join(lang)} ({model})')
 				# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
 				if (
 					lang[0] == lang[1] and 
