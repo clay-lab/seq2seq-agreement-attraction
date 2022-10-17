@@ -17,6 +17,12 @@ from contextlib import suppress
 from nltk import PCFG, Tree
 from nltk import nonterminals, Nonterminal, Production
 
+ALL_MODELS: Set[str] = {
+	f't5-{size}' 
+	for size in ['tiny', 'mini', 'small', 'base']
+	# + ['large', 'xl', 'xxl']
+}
+
 def generate(
 	grammar: PCFG, 
 	start: str = None, 
@@ -525,7 +531,7 @@ def create_datasets_from_config(
 	:param configs: Dict[str,List]: passed to create_tense_datasets
 	:param kwargs: passed to create_tense_datasets, 
 				   combine_language_datasets_for_tense,
-				   and create_mt5_scripts
+				   and create_scripts
 	 			   (useful to set overwrite=True)
 	
 	:outputs: see outputs of create_tense_datasets and combine_language_datasets_for_tense.
@@ -534,14 +540,14 @@ def create_datasets_from_config(
 	
 	create_tense_datasets(configs, **kwargs)
 	# combine_language_datasets_for_tense(list(configs.keys()), **kwargs)
-	create_t5_scripts(configs, **kwargs)
+	create_scripts(configs, **kwargs)
 
-def create_t5_scripts(
+def create_scripts(
 	configs: Dict = None, 
 	overwrite: bool = False
 ) -> None:
 	'''
-	Creates finetuning and eval scripts for the passed configs for t5.
+	Creates finetuning and eval scripts for the passed configs for the models in ALL_MODELS.
 	
 	:params langs: (List[str]): a list of language abbreviations with files in the ./data/ directory.
 	
@@ -549,7 +555,7 @@ def create_t5_scripts(
 	'''	
 	script = '\n'.join([
 		'#!/bin/bash\n',
-		'#SBATCH --job-name=T5-base-finetune-tense-[TRAIN_LANG]',
+		'#SBATCH --job-name=[MODEL]-finetune-tense-[TRAIN_LANG]',
 		'#SBATCH --output=joblogs/%x_%j.txt',
 		'#SBATCH --nodes=1',
 		'#SBATCH --cpus-per-task=1',
@@ -566,12 +572,12 @@ def create_t5_scripts(
 		'source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt',
 		'',
 		'python core/run_seq2seq.py \\',
-		"	--model_name_or_path 't5-base' \\",
+		"	--model_name_or_path '[MODEL]' \\",
 		'	--do_train \\',
 		'	--task translation_src_to_tgt \\',
 		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
 		'	--validation_file data/[DEV_LANG]/[DEV_LANG]_dev.json.gz \\',
-		'	--output_dir outputs/t5-finetuning-[TRAIN_LANG]-bs128/ \\',
+		'	--output_dir outputs/[MODEL]-finetuning-[TRAIN_LANG]-bs128/ \\',
 		'	--per_device_train_batch_size=4 \\',
 		'	--gradient_accumulation_steps=32 \\',
 		'	--per_device_eval_batch_size=16 \\',
@@ -599,59 +605,60 @@ def create_t5_scripts(
 	os.makedirs(os.path.join('scripts', 'finetune'), exist_ok=True)
 	os.makedirs(os.path.join('scripts', 'eval'), exist_ok=True)
 	
-	# create the scripts for each language and pair of languages
 	for lang in langs:
-		lang_ft_script = script
-		lang_ev_script = eval_script
-		
-		train_lang 		= lang[0]
-		dev_lang 		= lang[0]
-		# train_dash_lang = lang[0].replace('_', '-')
-		test_lang 		= lang[1]
-		
-		file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
-		
-		if os.path.isfile(os.path.join('data', train_lang, f'{train_lang}_train.json.gz')):
-			print(f'Creating scripts for {" -> ".join(lang)}')
-			# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
-			if (
-				lang[0] == lang[1] and 
-				os.path.isfile(os.path.join('data', dev_lang, f'{dev_lang}_dev.json.gz'))
-			):
-				lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
-				lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
-				# lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
-				if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh')) or overwrite:
-					with open(os.path.join('scripts', 'finetune', f'finetune_t5_{file_name}_bs128.sh'), 'wt') as out_file:
-						out_file.write(lang_ft_script)
+		print(f'Creating scripts for {" -> ".join(lang)}')
+		for model in ALL_MODELS:
+			# create the scripts for each language and pair of languages
+			lang_ft_script = script.replace('[MODEL]', model)
+			lang_ev_script = eval_script.replace('[MODEL]', model)
 			
-			if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
-				lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
-				lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
-				# lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-				if not os.path.exists(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh')) or overwrite:
-					with open(os.path.join('scripts', 'eval', f'eval_t5_{file_name}_bs128.sh'), 'wt') as out_file:
-						out_file.write(lang_ev_script)
+			train_lang 		= lang[0]
+			dev_lang 		= lang[0]
+			# train_dash_lang = lang[0].replace('_', '-')
+			test_lang 		= lang[1]
+			
+			file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
+			
+			if os.path.isfile(os.path.join('data', train_lang, f'{train_lang}_train.json.gz')):
+				# if the langs are not the same, we do not need to create a separate tuning script, only a separate eval script
+				if (
+					lang[0] == lang[1] and 
+					os.path.isfile(os.path.join('data', dev_lang, f'{dev_lang}_dev.json.gz'))
+				):
+					lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
+					lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
+					# lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
+					if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_{model}_{file_name}_bs128.sh')) or overwrite:
+						with open(os.path.join('scripts', 'finetune', f'finetune_{model}_{file_name}_bs128.sh'), 'wt') as out_file:
+							out_file.write(lang_ft_script)
 				
-		"""
-		# if we have multiple languages, create a zero-shot version of the eval script
-		if len(lang) == 2:
-			lang_zs_ev_script 	= eval_script.replace(
-				'#SBATCH --job-name=T5-base-eval-pres-[TRAIN-LANG]',
-				'#SBATCH --job-name=T5-base-eval-pres-[TRAIN-ZS-LANG]-zs'
-			)
-			train_lang 			= lang[0]
-			train_dash_lang 	= lang[0]
-			
-			lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN_LANG]', train_lang)
-			lang_zs_ev_script 	= lang_zs_ev_script.replace('[TEST_LANG]', test_lang)
-			lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-ZS-LANG]', '-'.join(lang))
-			lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-			
-			if not os.path.exists(os.path.join('scripts', 'eval', f'eval_mt5_pres_{"_".join(lang)}_bs128_zs.sh')) or overwrite:
-				with open(os.path.join('scripts', 'eval', f'eval_mt5_pres_{"_".join(lang)}_bs128_zs.sh'), 'wt') as out_file:
-					out_file.write(lang_zs_ev_script)
-		"""
+				if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
+					lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
+					lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
+					# lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
+					if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model}_{file_name}_bs128.sh')) or overwrite:
+						with open(os.path.join('scripts', 'eval', f'eval_{model}_{file_name}_bs128.sh'), 'wt') as out_file:
+							out_file.write(lang_ev_script)
+					
+			"""
+			# if we have multiple languages, create a zero-shot version of the eval script
+			if len(lang) == 2:
+				lang_zs_ev_script 	= eval_script.replace(
+					f'#SBATCH --job-name={model}-eval-pres-[TRAIN-LANG]',
+					'f#SBATCH --job-name={model}-eval-pres-[TRAIN-ZS-LANG]-zs'
+				)
+				train_lang 			= lang[0]
+				train_dash_lang 	= lang[0]
+				
+				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN_LANG]', train_lang)
+				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TEST_LANG]', test_lang)
+				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-ZS-LANG]', '-'.join(lang))
+				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
+				
+				if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model}_pres_{"_".join(lang)}_bs128_zs.sh')) or overwrite:
+					with open(os.path.join('scripts', 'eval', f'eval_{model}_pres_{"_".join(lang)}_bs128_zs.sh'), 'wt') as out_file:
+						out_file.write(lang_zs_ev_script)
+			"""
 	
 def load_config(path: 'str or Pathlike' = None) -> Dict[str,List]:
 	'''

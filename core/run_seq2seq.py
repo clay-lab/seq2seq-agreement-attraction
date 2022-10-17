@@ -679,9 +679,12 @@ def main():
 		
 		title = os.path.split(training_args.output_dir)
 		title = [s for s in title if s][-1]
+		model = re.findall('(.*)-finetuning', title)
+		model = model[0]
 		title = re.findall('finetuning-(.*)-.*?$', title)
 		title = title[0].replace('-', '_', 1)
-		title = f'training: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
+		title = f'model: {model}'
+		title += f'\ntraining: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, f'{basename}.learning_curves.pdf')) as pdf:
 			common_kwargs = dict(x='iteration', errorbar=None)
