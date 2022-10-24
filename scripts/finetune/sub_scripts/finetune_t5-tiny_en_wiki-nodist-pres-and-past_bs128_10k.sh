@@ -20,8 +20,8 @@ python core/run_seq2seq.py \
 	--model_name_or_path 't5-tiny' \
 	--do_train \
 	--task translation_src_to_tgt \
-	--train_file data/en_wiki-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_train_10k.json \
-	--validation_file data/en_wiki-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_dev_100.json \
+	--train_file data/en_wiki-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_train_10k.json.gz \
+	--validation_file data/en_wiki-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_dev_100.json.gz \
 	--output_dir outputs/t5-tiny-finetuning-en_wiki-nodist-pres-and-past_10k-bs128/ \
 	--per_device_train_batch_size=4 \
 	--gradient_accumulation_steps=32 \
