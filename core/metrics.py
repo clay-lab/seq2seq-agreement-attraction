@@ -8,7 +8,11 @@ import nltk
 from tqdm import tqdm
 from typing import *
 from inspect import signature, getmembers
-from grammars import english_grammar_RC_PP
+from grammars import (
+	english_grammar_RC_PP,
+	english_grammar_VN_98,
+	english_grammar_FVN_02,
+)
 from grammars.generator import get_english_RC_PP_pos_seq, grep_next_subtree
 from itertools import cycle
 from statistics import mean
