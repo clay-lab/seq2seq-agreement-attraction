@@ -20,3 +20,5 @@ __pycache__/
 
 *.ipynb
 .ipynb_checkpoints/
+.DS_store
+.DS_store.gz

@@ -52,6 +52,7 @@ def sbatch_all(s):
 	
 	if not submit_individually:
 		try:
+			breakpoint()
 			# create a joblist txt file
 			joblist = []
 			for script in globbed:
