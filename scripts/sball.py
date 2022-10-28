@@ -52,7 +52,6 @@ def sbatch_all(s):
 	
 	if not submit_individually:
 		try:
-			breakpoint()
 			# create a joblist txt file
 			joblist = []
 			for script in globbed:
@@ -100,7 +99,9 @@ def sbatch_all(s):
 			x.kill()
 			
 			os.remove(os.path.join(dirname, name + '.sh'))
-		
+		except KeyboardInterrupt:
+			print('User terminated job.')
+			sys.exit(0)
 		except Exception:
 			print('Error submitting jobs using dSQ. Submitting individually.')
 			for script in globbed:
