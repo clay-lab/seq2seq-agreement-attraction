@@ -17,7 +17,7 @@ module load miniconda
 source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 
 python core/run_seq2seq.py \
-	--model_name_or_path 't5-mini' \
+	--model_name_or_path 't5-efficient-mini' \
 	--do_train \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_train_50k.json.gz \
