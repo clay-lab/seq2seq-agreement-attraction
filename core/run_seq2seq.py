@@ -286,6 +286,7 @@ def main():
 			"Use --overwrite_output_dir to overcome."
 		)
 	
+	breakpoint()
 	# Setup logging
 	logging.basicConfig(
 		format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -389,7 +390,7 @@ def main():
 	# We need to tokenize inputs and targets.
 	if training_args.do_train:
 		num_rows = datasets['train'].num_rows
-		save_steps = int((num_rows*training_args.num_train_epochs)/(training_args.per_device_train_batch_size*training_args.gradient_accumulation_steps)/15)
+		save_steps = max(1,int((num_rows*training_args.num_train_epochs)/(training_args.per_device_train_batch_size*training_args.gradient_accumulation_steps)/15))
 		training_args.save_steps = save_steps
 		column_names = datasets["train"].column_names
 	else:
@@ -653,7 +654,17 @@ def main():
 				metrics = [{k: v for d in ds for k, v in d.items()} for ds in zip(*[metrics[m] for m in metrics], metadata)]
 				metrics = pd.DataFrame(metrics)
 				metrics.insert(0, 'iteration', it)
-				metrics = metrics.assign(model_name=model_args.model_name_or_path)
+				
+				metrics = metrics.assign(
+						model_name=re.sub('["\']', '', model_args.model_name_or_path),
+						train_dataset=os.path.basename(data_args.train_file).replace('.json.gz', ''),
+						test_dataset=os.path.basename(data_args.validation_file).replace('.json.gz', ''),
+						learning_rate=training_args.learning_rate,
+						num_train_epochs=training_args.num_train_epochs,
+						n_training_examples=datasets['train'].num_rows,
+						n_test_examples=datasets['validation'].num_rows,
+					)
+				
 				metrics = metrics[[c for c in metrics.columns if not c in metric_names] + metric_names]
 				metrics.to_csv(output_eval_file, index=False, na_rep='NaN')
 		
@@ -674,18 +685,19 @@ def main():
 					not k in [
 						'tense', 
 						'each_distractor_structure', 
-						'object_number'
+						'object_number',
 					]
 		]
 		
-		title = os.path.split(training_args.output_dir)
-		title = [s for s in title if s][-1]
-		# model = re.findall('(.*)-finetuning', title)
-		# model = model[0]
-		title = re.findall('finetuning-(.*)-.*?$', title)
-		title = title[0].replace('-', '_', 1)
-		title = f'model: {model_args.model_name_or_path}'
-		title += f'\ntraining: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
+		# title = os.path.split(training_args.output_dir)
+		# title = [s for s in title if s][-1]
+		# # model = re.findall('(.*)-finetuning', title)
+		# # model = model[0]
+		# title = re.findall('finetuning-(.*)-.*?$', title)
+		# title = title[0].replace('-', '_', 1)
+		title = 'model: ' + re.sub('[\'"]', '', model_args.model_name_or_path)
+		title += f'\ntraining: {title = os.path.basename(data_args.train_file).replace(".json.gz", "")}, '
+		title += f'test: {os.path.basename(data_args.validation_file).replace(".json.gz", "")}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, f'{basename}.learning_curves.pdf')) as pdf:
 			common_kwargs = dict(x='iteration', errorbar=None)
