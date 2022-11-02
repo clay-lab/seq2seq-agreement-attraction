@@ -334,7 +334,7 @@ def main():
 	
 	# See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
 	# https://huggingface.co/docs/datasets/loading_datasets.html.
-
+	
 	# Load pretrained model and tokenizer
 	#
 	# Distributed training:
@@ -374,7 +374,7 @@ def main():
 			model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(data_args.target_prefix)
 		elif not data_args.prefix_from_file:
 			raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
-
+	
 	# Get the default prefix if None is passed.
 	if data_args.source_prefix is None:
 		task_specific_params = model.config.task_specific_params
@@ -416,7 +416,7 @@ def main():
 	# To serialize preprocess_function below, each of those four variables needs to be defined (even if we won't use
 	# them all).
 	source_lang, target_lang, text_column, summary_column = None, None, None, None
-
+	
 	# Get the language codes for input/target.
 	lang_search = re.match("translation_([a-z]+)_to_([a-z]+)", data_args.task)
 	if data_args.source_lang is not None:
@@ -426,7 +426,7 @@ def main():
 			lang_search is not None
 		), "Provide a source language via --source_lang or rename your task 'translation_xx_to_yy'."
 		source_lang = lang_search.groups()[0]
-
+	
 	if data_args.target_lang is not None:
 		target_lang = data_args.target_lang.split("_")[0]
 	else:
@@ -434,11 +434,11 @@ def main():
 			lang_search is not None
 		), "Provide a target language via --target_lang or rename your task 'translation_xx_to_yy'."
 		target_lang = lang_search.groups()[1]
-
+	
 	# Temporarily set max_target_length for training.
 	max_target_length 	= data_args.max_target_length
 	padding 			= "max_length" if data_args.pad_to_max_length else False
-
+	
 	def preprocess_function(examples):
 		inputs 			= [ex["prefix"] + ex["src"] for ex in examples["translation"]]
 		targets 		= [ex["tgt"] for ex in examples["translation"]]
@@ -466,7 +466,7 @@ def main():
 
 		model_inputs["labels"] = labels["input_ids"]
 		return model_inputs
-
+	
 	if training_args.do_train:
 		train_dataset 		= datasets["train"]
 		
@@ -550,14 +550,14 @@ def main():
 		data_collator=data_collator,
 		compute_metrics=compute_metrics if training_args.predict_with_generate else None,
 	)
-
+	
 	# Training
 	if training_args.do_train:
 		train_result = trainer.train(
 			model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
 		)
 		trainer.save_model() # Saves the tokenizer too for easy upload
-
+		
 		output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
 		if trainer.is_world_process_zero():
 			with open(output_train_file, "w") as writer:
@@ -565,7 +565,7 @@ def main():
 				for key, value in sorted(train_result.metrics.items()):
 					logger.info(f"{key} = {value}")
 					writer.write(f"{key} = {value}\n")
-
+			
 			# Need to save the state, since Trainer.save_model saves only the tokenizer with the model
 			trainer.state.save_to_json(os.path.join(training_args.output_dir, "trainer_state.json"))
 	
@@ -609,7 +609,7 @@ def main():
 		
 		for path in glob.glob(os.path.join(training_args.output_dir, "checkpoint-*", "")):
 			output_pred_file = os.path.join(path, basename + ".eval_preds_seq2seq.txt")
-
+			
 			# do not re-compute predictions if they already exist
 			if not os.path.exists(output_pred_file):
 				model = AutoModelForSeq2SeqLM.from_pretrained(
@@ -653,6 +653,7 @@ def main():
 				metrics = [{k: v for d in ds for k, v in d.items()} for ds in zip(*[metrics[m] for m in metrics], metadata)]
 				metrics = pd.DataFrame(metrics)
 				metrics.insert(0, 'iteration', it)
+				metrics = metrics.assign(model_name=model_args.model_name_or_path)
 				metrics = metrics[[c for c in metrics.columns if not c in metric_names] + metric_names]
 				metrics.to_csv(output_eval_file, index=False, na_rep='NaN')
 		
@@ -679,11 +680,11 @@ def main():
 		
 		title = os.path.split(training_args.output_dir)
 		title = [s for s in title if s][-1]
-		model = re.findall('(.*)-finetuning', title)
-		model = model[0]
+		# model = re.findall('(.*)-finetuning', title)
+		# model = model[0]
 		title = re.findall('finetuning-(.*)-.*?$', title)
 		title = title[0].replace('-', '_', 1)
-		title = f'model: {model}'
+		title = f'model: {model_args.model_name_or_path}'
 		title += f'\ntraining: {title}, test: {re.findall("(.*?)_test", basename)[0]}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, f'{basename}.learning_curves.pdf')) as pdf:
