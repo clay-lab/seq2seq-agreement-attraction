@@ -18,8 +18,13 @@ from nltk import PCFG, Tree
 from nltk import nonterminals, Nonterminal, Production
 
 ALL_MODELS: Set[str] = {
-	f't5-{size}' 
-	for size in ['tiny', 'mini', 'small', 'base']
+	f'google/t5-{size}' 
+	for size in [
+		'efficient-tiny', 
+		'efficient-mini', 
+		'efficient-small', 
+		'efficient-base',
+	]
 	# + ['large', 'xl', 'xxl']
 }
 
@@ -572,7 +577,7 @@ def create_scripts(
 		'source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt',
 		'',
 		'python core/run_seq2seq.py \\',
-		"	--model_name_or_path '[MODEL]' \\",
+		"	--model_name_or_path '[MODEL_NAME_OR_PATH]' \\",
 		'	--do_train \\',
 		'	--task translation_src_to_tgt \\',
 		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
@@ -608,8 +613,10 @@ def create_scripts(
 	for lang in langs:
 		for model in ALL_MODELS:
 			# create the scripts for each language and pair of languages
-			lang_ft_script = script.replace('[MODEL]', model)
-			lang_ev_script = eval_script.replace('[MODEL]', model)
+			lang_ft_script = script.replace('[MODEL_NAME_OR_PATH]', model)
+			lang_ft_script = lang_ft_script.replace('[MODEL]', model.split('/')[-1])
+			lang_ev_script = eval_script.replace('[MODEL_NAME_OR_PATH]', model)
+			lang_ev_script = lang_ev_script.replace('[MODEL]', model.split('/')[-1])
 			
 			train_lang 		= lang[0]
 			dev_lang 		= lang[0]
@@ -628,16 +635,16 @@ def create_scripts(
 					lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
 					lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
 					# lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
-					if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_{model}_{file_name}_bs128.sh')) or overwrite:
-						with open(os.path.join('scripts', 'finetune', f'finetune_{model}_{file_name}_bs128.sh'), 'wt') as out_file:
+					if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_{model.split("/")[-1]}_{file_name}_bs128.sh')) or overwrite:
+						with open(os.path.join('scripts', 'finetune', f'finetune_{model.split("/")[-1]}_{file_name}_bs128.sh'), 'wt') as out_file:
 							out_file.write(lang_ft_script)
 				
 				if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
 					lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
 					lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
 					# lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-					if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model}_{file_name}_bs128.sh')) or overwrite:
-						with open(os.path.join('scripts', 'eval', f'eval_{model}_{file_name}_bs128.sh'), 'wt') as out_file:
+					if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model.split("/")[-1]}_{file_name}_bs128.sh')) or overwrite:
+						with open(os.path.join('scripts', 'eval', f'eval_{model.split("/")[-1]}_{file_name}_bs128.sh'), 'wt') as out_file:
 							out_file.write(lang_ev_script)
 					
 			"""

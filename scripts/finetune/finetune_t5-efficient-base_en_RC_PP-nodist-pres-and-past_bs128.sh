@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=t5-base-eval-tense-en_RC_PP-nodist-pres-and-past
+#SBATCH --job-name=t5-efficient-base-finetune-tense-en_RC_PP-nodist-pres-and-past
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -17,13 +17,15 @@ module load miniconda
 source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 
 python core/run_seq2seq.py \
-	--model_name_or_path 't5-base' \
-	--do_learning_curve \
+	--model_name_or_path 'google/t5-efficient-base' \
+	--do_train \
 	--task translation_src_to_tgt \
 	--train_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_train.json.gz \
-	--validation_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_test.json.gz \
-	--output_dir outputs/t5-base-finetuning-en_RC_PP-nodist-pres-and-past-bs128/ \
-	--per_device_train_batch_size=8 \
+	--validation_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_dev.json.gz \
+	--output_dir outputs/t5-efficient-base-finetuning-en_RC_PP-nodist-pres-and-past-bs128/ \
+	--per_device_train_batch_size=4 \
+	--gradient_accumulation_steps=32 \
 	--per_device_eval_batch_size=16 \
 	--overwrite_output_dir \
 	--predict_with_generate \
+	--num_train_epochs 10.0
