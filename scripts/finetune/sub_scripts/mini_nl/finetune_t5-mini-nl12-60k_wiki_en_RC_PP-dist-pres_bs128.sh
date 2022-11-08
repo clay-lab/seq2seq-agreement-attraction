@@ -21,8 +21,8 @@ python core/run_seq2seq.py \
 	--do_train \
 	--task translation_src_to_tgt \
 	--train_file data/en_RC_PP_sm-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_train_60k.json.gz \
-	--validation_file data/en_RC_PP_sm-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_train_60k.json.gz \
-	--output_dir outputs/mini_nl/t5-efficient-mini-nl12-60k-finetuning-en_RC_PP_sm-nodist-pres-and-past-bs128/ \
+	--validation_file data/en_RC_PP_sm-nodist-pres-and-past/sub_datasets/en_wiki-nodist-pres-and-past_dev_600.json.gz \
+	--output_dir outputs/t5-efficient-mini-nl12-60k-finetuning-en_RC_PP_sm-nodist-pres-and-past-bs128/ \
 	--per_device_train_batch_size=4 \
 	--gradient_accumulation_steps=32 \
 	--per_device_eval_batch_size=16 \
