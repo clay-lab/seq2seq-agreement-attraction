@@ -695,7 +695,7 @@ def main():
 		# title = re.findall('finetuning-(.*)-.*?$', title)
 		# title = title[0].replace('-', '_', 1)
 		title = 'model: ' + re.sub('[\'"]', '', model_args.model_name_or_path)
-		title += f'\ntraining: {title = os.path.basename(data_args.train_file).replace(".json.gz", "")}, '
+		title += f'\ntraining: {os.path.basename(data_args.train_file).replace(".json.gz", "")}, '
 		title += f'test: {os.path.basename(data_args.validation_file).replace(".json.gz", "")}'
 		
 		with PdfPages(os.path.join(training_args.output_dir, f'{basename}.learning_curves.pdf')) as pdf:
