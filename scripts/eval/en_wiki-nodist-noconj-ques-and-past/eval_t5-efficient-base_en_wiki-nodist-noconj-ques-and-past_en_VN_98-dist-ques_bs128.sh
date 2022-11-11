@@ -17,7 +17,7 @@ module load miniconda
 source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 
 python core/run_seq2seq.py \
-	--model_name_or_path 't5-efficient-base' \
+	--model_name_or_path 'google/t5-efficient-base' \
 	--do_learning_curve \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nodist-noconj-ques-and-past/en_wiki-nodist-noconj-ques-and-past_train.json.gz \
