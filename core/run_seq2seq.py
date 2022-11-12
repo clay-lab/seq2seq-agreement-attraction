@@ -654,12 +654,24 @@ def main():
 				metrics = pd.DataFrame(metrics)
 				metrics.insert(0, 'iteration', it)
 				
+				max_checkpoint = max([
+					int(re.findall('-([0-9]*)$', d)[0]) 
+					for d in os.listdir(training_args.output_dir) 
+						if d.startswith('checkpoint')
+				])
+				
+				# this is only an approximation, but it's better than the default of 3.0
+				num_train_epochs = round((
+					max_checkpoint * training_args.per_device_train_batch_size * training_args.per_device_eval_batch_size/
+					datasets['train'].num_rows
+				) + 0.5)
+				
 				metrics = metrics.assign(
 						model_name=re.sub('["\']', '', model_args.model_name_or_path),
 						train_dataset=os.path.basename(data_args.train_file).replace('.json.gz', ''),
 						test_dataset=os.path.basename(data_args.validation_file).replace('.json.gz', ''),
 						learning_rate=training_args.learning_rate,
-						num_train_epochs=training_args.num_train_epochs,
+						num_train_epochs=num_train_epochs,
 						n_training_examples=datasets['train'].num_rows,
 						n_test_examples=datasets['validation'].num_rows,
 					)
