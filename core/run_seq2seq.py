@@ -703,6 +703,7 @@ def main():
 			
 			# var is None is used for an overall plot without groups
 			for var in [None] + grouping_vars:
+				# fig, ax = plt.subplots(1, tight_layout=True)
 				for c in metric_names:
 					# if all values are na, no plot can or should be created
 					if not all(eval_preds[c].isna()):
@@ -769,7 +770,7 @@ def main():
 									indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
 									handles = [handles[i] for i in indices]
 									labels = [labels[i] for i in indices]
-							
+								
 								legend_kwargs.update(dict(handles=handles, labels=labels))
 								
 								ax.legend(**legend_kwargs)
@@ -784,6 +785,7 @@ def main():
 								ax.set_ylabel('proportion')
 								
 								fig = plt.gcf()
+								# fig.tight_layout()
 								fig.set_size_inches(8, 6)
 								suptitle = f'{title}' 
 								suptitle += (
@@ -792,7 +794,9 @@ def main():
 									else ''
 								)
 								fig.suptitle(suptitle)
-								pdf.savefig(bbox_inches='tight')
+								fig.tight_layout()
+								# pdf.savefig(bbox_inches='tight')
+								pdf.savefig()
 								plt.close()
 								del fig
 						else:
@@ -803,6 +807,8 @@ def main():
 						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
 						logger.warning('No plot will be created.')
 						logger.warning('If this is unexpected, check your metric.')
+					
+				# del fig
 					
 if __name__ == '__main__':
 	
