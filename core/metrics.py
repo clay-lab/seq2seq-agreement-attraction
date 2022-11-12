@@ -720,34 +720,19 @@ def compute_metrics(
 		'dataframe'	: lambda x: x.to_dataframe(),
 	}
 	
-<<<<<<< HEAD
-	gold_file 		= data_args.validation_file
-	
-=======
 	gold_file		= data_args.validation_file	
-
->>>>>>> 2631871450f136d5bfd68ef37cf8c2b2b70d5aba
 	with open(pred_file, 'r', encoding='utf-8') as pred_f:
 		pred_lines	= pred_f.readlines()
 	
-	open_fn 		= gzip.open if gold_file.endswith('.gz') else open
-	
+	open_fn 		= gzip.open if gold_file.endswith('.gz') else open	
 	with open_fn(gold_file, 'rt', encoding='utf-8') as gold_f:
 		gold_lines 	= gold_f.readlines()
 	
-<<<<<<< HEAD
 	metadata_file 	= gold_file.replace('.json', '_metadata.json')
 	open_fn 		= gzip.open if metadata_file.endswith('.gz') else open
 	with open_fn(metadata_file, 'rt', encoding='utf-8') as metadata_f:
 		metadata_lines = metadata_f.readlines()
 	
-=======
-	metadata_file = gold_file.replace('.json', '_metadata.json')
-	open_fn 	= gzip.open if metadata_file.endswith('.gz') else open
-	with open_fn(metadata_file, 'rt', encoding='utf-8') as metadata_f:
-		metadata_lines = metadata_f.readlines()
-		
->>>>>>> 2631871450f136d5bfd68ef37cf8c2b2b70d5aba
 	metadata_jsons 	= [json.loads(metadata_line) for metadata_line in metadata_lines]
 		# if all('source_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
 		#  	source_pos_seq = [metadata_json['source_pos_seq'] for metadata_json in metadata_jsons]
@@ -757,17 +742,10 @@ def compute_metrics(
 		# if all('target_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
 		# 	target_pos_seq = [metadata_json['target_pos_seq'] for metadata_json in metadata_jsons]
 		# else:
-<<<<<<< HEAD
 		# 	target_pos_seq = None
-=======
 		#	 target_pos_seq = None
->>>>>>> 2631871450f136d5bfd68ef37cf8c2b2b70d5aba
-	# else:
-		# source_pos_seq = None
-		# target_pos_seq = None
 	
-	gold_file 		= re.sub(r'\.gz$', '', gold_file)
-	
+	gold_file 		= re.sub(r'\.gz$', '', gold_file)	
 	pred_lines 		= format_sentences(pred_lines)
 	
 	if gold_file.endswith('.json'):
@@ -785,21 +763,12 @@ def compute_metrics(
 	# 	gold_line_indices = [i for i, line in enumerate(gold_jsons) if line['translation']['prefix'] == 'neg']
 	# 	gold_lines = [line for i, line in enumerate(gold_lines) if i in gold_line_indices]
 	# 	pred_lines = [line for i, line in enumerate(pred_lines) if i in gold_line_indices]
-<<<<<<< HEAD
-	# trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
-	# trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
-	# tgt_lang 		= re.findall(r'(.*?)-', os.path.split(pred_file)[-1])[0]
-	# trn_lang 		= os.path.basename(data_args.train_file).replace('_train.json.gz', '')
-	tgt_lang		= re.findall(r'(.*?)-', os.path.basename(gold_file))[0]
-	# assume we're present tense unless given otherwise, since it's the more interesting one
-=======
 	# trn_lang 		= re.findall(r'finetuning-(.*?)-', os.path.split(pred_file)[-2])[0]
 	# trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
 	# tgt_lang 		= re.findall(r'(.*?)-', os.path.split(pred_file)[-1])[0]
 	# trn_lang		= os.path.basename(data_args.train_file).replace('_train.json.gz', '')
 	tgt_lang		= re.findall(r'(.*?)-', os.path.basename(gold_file))[0]
 	# assume we're present tense unless given otherwise, since present is the more interesting one
->>>>>>> 2631871450f136d5bfd68ef37cf8c2b2b70d5aba
 	tense 			= [metadata_json.get('tense', 'pres') for metadata_json in metadata_jsons]
 	
 	props = {}
