@@ -32,7 +32,7 @@ english_grammar_VN_98 = CFG.fromstring("""
 	N_pl -> 'paths' | 'photos' | 'prescriptions' | 'producers' | 'publishers' | 'statues' | 'supports'
 	N_pl -> 'switches' | 'telegrams' | 'threats' | 'tours' | 'trains' | 'trucks' | 'bridges'
 	N_pl -> 'clubs' | 'directors' | 'writers' | 'speeches' | 'accountants' | 'programs' | 'actors'
-	N_pl -> 'streets' | 'yachts' | 'topics' | 'editors' | 'babies' | 'flights' | 'government'
+	N_pl -> 'streets' | 'yachts' | 'topics' | 'editors' | 'babies' | 'flights' | 'governments'
 	N_pl -> 'machines' | 'guests' | 'pictures' | 'lakes' | 'girls' | 'doctors' | 'movies' | 'books'
 	N_pl -> 'gardens' | 'platforms' | 'lights' | 'soldiers' | 'presidents' | 'museums' | 'cities'
 	
