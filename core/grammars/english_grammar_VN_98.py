@@ -9,7 +9,7 @@ english_grammar_VN_98 = CFG.fromstring("""
 	
 	DP -> D NP
 	NP -> N | NP PP
-	N -> N_sg | N_pl
+	N -> N_sg | N_pl | ADJ N_sg | ADJ N_pl
 	
 	VP -> V | V ADJ
 	PP -> P DP
@@ -18,7 +18,7 @@ english_grammar_VN_98 = CFG.fromstring("""
 	
 	N_sg -> 'advertisement' | 'announcement' | 'article' | 'author' | 'bill' | 'computer'
 	N_sg -> 'contract' | 'crowd' | 'deck' | 'discussion' | 'friend' | 'gift' | 'helicopter'
-	N_sg -> 'lesson' | 'letter' | 'manual' | 'meal' | 'museum' | 'new design' | 'engine'
+	N_sg -> 'lesson' | 'letter' | 'manual' | 'meal' | 'museum' | 'design' | 'engine'
 	N_sg -> 'path' | 'photo' | 'prescription' | 'producer' | 'publisher' | 'statue' | 'support'
 	N_sg -> 'switch' | 'telegram' | 'threat' | 'tour' | 'train' | 'truck' | 'bridge'
 	N_sg -> 'club' | 'director' | 'writer' | 'speech' | 'accountant' | 'program' | 'actor'
@@ -28,7 +28,7 @@ english_grammar_VN_98 = CFG.fromstring("""
 	
 	N_pl -> 'advertisements' | 'announcements' | 'articles' | 'authors' | 'bills' | 'computers'
 	N_pl -> 'contracts' | 'crowds' | 'decks' | 'discussions' | 'friends' | 'gifts' | 'helicopters'
-	N_pl -> 'lessons' | 'letters' | 'manuals' | 'meals' | 'museums' | 'new designs' | 'engines'
+	N_pl -> 'lessons' | 'letters' | 'manuals' | 'meals' | 'museums' | 'designs' | 'engines'
 	N_pl -> 'paths' | 'photos' | 'prescriptions' | 'producers' | 'publishers' | 'statues' | 'supports'
 	N_pl -> 'switches' | 'telegrams' | 'threats' | 'tours' | 'trains' | 'trucks' | 'bridges'
 	N_pl -> 'clubs' | 'directors' | 'writers' | 'speeches' | 'accountants' | 'programs' | 'actors'
@@ -44,6 +44,6 @@ english_grammar_VN_98 = CFG.fromstring("""
 	ADJ -> 'acceptable' | 'restless' | 'spacious' | 'boring' | 'blonde' | 'expensive' | 'safe'
 	ADJ -> 'interesting' | 'emotional' | 'comprehensible' | 'delicious' | 'open' | 'successful'
 	ADJ -> 'scenic' | 'blurry' | 'ready' | 'famous' | 'wealthy' | 'impressive' | 'solid'
-	ADJ -> 'hidden' | 'unexpected' | 'serious' | 'disappointing' | 'crowded' | 'noisy'
+	ADJ -> 'hidden' | 'unexpected' | 'serious' | 'disappointing' | 'crowded' | 'noisy' | 'new'
 """)
 setattr(english_grammar_VN_98, 'lang', 'en_VN_98')

@@ -638,7 +638,7 @@ def main():
 						for pred in tokenizer.batch_decode(predictions.predictions, skip_special_tokens=True):
 							writer.write(pred + "\n")
 			
-			metrics = run_metrics(output_pred_file, data_args.validation_file, return_results='list')
+			metrics = run_metrics(output_pred_file, data_args, return_results='list')
 			
 			it_res 	= re.match(".*checkpoint-([0-9]+)[/].*", path)
 			it 		= it_res.group(1)

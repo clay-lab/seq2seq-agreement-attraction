@@ -4,6 +4,7 @@ import sys
 import gzip
 import json
 import nltk
+import logging
 
 from tqdm import tqdm
 from typing import *
@@ -17,6 +18,8 @@ from grammars.generator import get_english_RC_PP_pos_seq, grep_next_subtree
 from itertools import cycle
 from statistics import mean
 from collections import defaultdict
+
+log = logging.getLogger(__name__)
 
 GRAMMARS = {
 	'en_RC_PP'		: english_grammar_RC_PP.english_grammar_RC_PP,
@@ -51,6 +54,7 @@ CURRENTLY_SUPPORTED = [
 # language-specific lowercase functions
 LOWERCASE = defaultdict(lambda: lambda s: s.lower())
 
+"""
 def parse_to_pos(
 	sentence: str,
 	trn_lang: str,
@@ -122,6 +126,7 @@ def parse_to_pos(
 					pos_seq[i] = comparison_pos_seq[i]
 	
 	return ' '.join(pos_seq)
+"""
 
 class metric():
 	'''
@@ -338,14 +343,14 @@ def main_verb_reinflected_correctly(
 	
 	# if the sentences match, then reinflection was correct
 	if pred_sentence == gold_sentence:
-		return True
+		return Trueex
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine the main verb
 	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())	
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -355,6 +360,7 @@ def main_verb_reinflected_correctly(
 		# if the sentence cannot be parsed, we will not count it
 		# technically, it might still show attraction and also be wrong in some other way
 		# but we can figure that out later
+		# log.warning(f'Unable to parse {pred_sentence!r} using {tgt_lang!r} grammar!')
 		return None
 	
 	# not implemented for other languages yet
@@ -363,7 +369,7 @@ def main_verb_reinflected_correctly(
 		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
 		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
 			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
-	
+		
 		subject_number = re.findall(r'_(.*)', grep_next_subtree(main_clause_subject, r'^N_').label())[0]
 		
 		main_clause_verb = grep_next_subtree(parsed_prediction, r'^V$')[0]
@@ -375,7 +381,7 @@ def main_verb_reinflected_correctly(
 		)
 
 @metric
-def only_main_verb_reinflected_correctly(
+def only_main_verb_reinflected_and_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
 	tgt_lang: str,
@@ -682,7 +688,8 @@ all_metrics = [
 
 def compute_metrics(
 	pred_file: str, 
-	gold_file: str,
+	data_args: 'DataTrainingArguments',
+	# gold_file: str,
 	metrics: List[metric] = all_metrics, 
 	return_results: str = None,
 ) -> Dict:
@@ -713,6 +720,8 @@ def compute_metrics(
 		'dataframe'	: lambda x: x.to_dataframe(),
 	}
 	
+	gold_file 		= data_args.validation_file
+	
 	with open(pred_file, 'r', encoding='utf-8') as pred_f:
 		pred_lines	= pred_f.readlines()
 	
@@ -721,25 +730,24 @@ def compute_metrics(
 	with open_fn(gold_file, 'rt', encoding='utf-8') as gold_f:
 		gold_lines 	= gold_f.readlines()
 	
-	metadata_file = gold_file.replace('.json', '_metadata.json')
-	if os.path.isfile(metadata_file):
-		open_fn 	= gzip.open if metadata_file.endswith('.gz') else open
-		with open_fn(metadata_file, 'rt', encoding='utf-8') as metadata_f:
-			metadata_lines = metadata_f.readlines()
+	metadata_file 	= gold_file.replace('.json', '_metadata.json')
+	open_fn 		= gzip.open if metadata_file.endswith('.gz') else open
+	with open_fn(metadata_file, 'rt', encoding='utf-8') as metadata_f:
+		metadata_lines = metadata_f.readlines()
+	
+	metadata_jsons 	= [json.loads(metadata_line) for metadata_line in metadata_lines]
+		# if all('source_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
+		#  	source_pos_seq = [metadata_json['source_pos_seq'] for metadata_json in metadata_jsons]
+		# else:
+		# 	source_pos_seq = None
 		
-		metadata_jsons 	= [json.loads(metadata_line) for metadata_line in metadata_lines]
-		if all('source_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
-		 	source_pos_seq = [metadata_json['source_pos_seq'] for metadata_json in metadata_jsons]
-		else:
-			source_pos_seq = None
-		
-		if all('target_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
-			target_pos_seq = [metadata_json['target_pos_seq'] for metadata_json in metadata_jsons]
-		else:
-			target_pos_seq = None
-	else:
-		source_pos_seq = None
-		target_pos_seq = None
+		# if all('target_pos_seq' in metadata_json.keys() for metadata_json in metadata_jsons):
+		# 	target_pos_seq = [metadata_json['target_pos_seq'] for metadata_json in metadata_jsons]
+		# else:
+		# 	target_pos_seq = None
+	# else:
+		# source_pos_seq = None
+		# target_pos_seq = None
 	
 	gold_file 		= re.sub(r'\.gz$', '', gold_file)
 	
@@ -748,11 +756,11 @@ def compute_metrics(
 	if gold_file.endswith('.json'):
 		gold_jsons 	= [json.loads(gold_line) for gold_line in gold_lines]
 		gold_lines 	= [gold_json['translation']['tgt'] for gold_json in gold_jsons]
-		src_lines 	= [gold_json['translation']['src'] for gold_json in gold_jsons]
-		src_lines 	= format_sentences(src_lines)
+		# src_lines 	= [gold_json['translation']['src'] for gold_json in gold_jsons]
+		# src_lines 	= format_sentences(src_lines)
 	else:
 		gold_lines 	= [gold_line.strip().split('\t')[1] for gold_line in gold_lines]
-		src_lines 	= None
+		# src_lines 	= None
 	
 	gold_lines		= format_sentences(gold_lines)
 	
@@ -760,20 +768,23 @@ def compute_metrics(
 	# 	gold_line_indices = [i for i, line in enumerate(gold_jsons) if line['translation']['prefix'] == 'neg']
 	# 	gold_lines = [line for i, line in enumerate(gold_lines) if i in gold_line_indices]
 	# 	pred_lines = [line for i, line in enumerate(pred_lines) if i in gold_line_indices]
-	trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
-	trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
-	tgt_lang 		= re.findall(r'(.*?)-', os.path.split(pred_file)[-1])[0]
-	tense 			= [metadata_json['tense'] for metadata_json in metadata_jsons]
+	# trn_lang 		= re.findall(r'outputs[/\\](.*?)[/\\$]', pred_file)[0]
+	# trn_lang 		= re.findall(r'finetuning-(.*?)-', trn_lang)[0]
+	# tgt_lang 		= re.findall(r'(.*?)-', os.path.split(pred_file)[-1])[0]
+	# trn_lang 		= os.path.basename(data_args.train_file).replace('_train.json.gz', '')
+	tgt_lang		= re.findall(r'(.*?)-', os.path.basename(gold_file))[0]
+	# assume we're present tense unless given otherwise, since it's the more interesting one
+	tense 			= [metadata_json.get('tense', 'pres') for metadata_json in metadata_jsons]
 	
 	props = {}
 	for m in tqdm(metrics):
 		m(
 			pred_sentence=pred_lines,
 			gold_sentence=gold_lines,
-			src_sentence=src_lines,
-			src_pos_seq=source_pos_seq,
-			tgt_pos_seq=target_pos_seq,
-			trn_lang=trn_lang,
+			# src_sentence=src_lines,
+			# src_pos_seq=source_pos_seq,
+			# tgt_pos_seq=target_pos_seq,
+			# trn_lang=trn_lang,
 			tgt_lang=tgt_lang,
 			tense=tense
 		)
