@@ -343,7 +343,7 @@ def main_verb_reinflected_correctly(
 	
 	# if the sentences match, then reinflection was correct
 	if pred_sentence == gold_sentence:
-		return Trueex
+		return True
 	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine the main verb
