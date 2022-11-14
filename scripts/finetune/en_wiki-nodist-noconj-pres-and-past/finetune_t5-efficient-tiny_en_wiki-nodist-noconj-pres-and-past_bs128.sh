@@ -28,4 +28,4 @@ python core/run_seq2seq.py \
 	--per_device_eval_batch_size=16 \
 	--overwrite_output_dir \
 	--predict_with_generate \
-	--num_train_epochs 10.0
+	--num_train_epochs 60.0
