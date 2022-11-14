@@ -42,7 +42,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	N_pl -> 'artists' | 'publishers' | 'books' | 'kings' | 'settings' | 'astronomers' | 'statues'
 	N_pl -> 'gardens' | 'mansions' | 'switches' | 'lights' | 'stairways' | 'telegrams' | 'soldiers'
 	N_pl -> 'threats' | 'presidents' | 'companies' | 'tours' | 'monuments' | 'trains' | 'trucks'
-	N_pl -> 'bridges' | 'streams'     
+	N_pl -> 'bridges' | 'streams'
 	
 	V -> 'seem' | 'seems'
 	
