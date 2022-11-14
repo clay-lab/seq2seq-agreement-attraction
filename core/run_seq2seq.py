@@ -674,6 +674,7 @@ def main():
 						num_train_epochs=num_train_epochs,
 						n_training_examples=datasets['train'].num_rows,
 						n_test_examples=datasets['validation'].num_rows,
+						n_params=f'{round(sum(p.numel() for p in model.parameters() if p.requires_grad)/1000000)}M'
 					)
 				
 				metrics = metrics[[c for c in metrics.columns if not c in metric_names] + metric_names]
