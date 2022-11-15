@@ -22,3 +22,5 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_store
 .DS_store.gz
+
+filter_datasets.py
