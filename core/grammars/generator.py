@@ -17,16 +17,33 @@ from contextlib import suppress
 from nltk import PCFG, Tree
 from nltk import nonterminals, Nonterminal, Production
 
-ALL_MODELS: Set[str] = {
-	f'google/t5-{size}' 
-	for size in [
-		'efficient-tiny', 
-		'efficient-mini', 
-		'efficient-small', 
-		'efficient-base',
+ALL_MODELS: Set[str] = set(
+	[f'google/t5-{size}' 
+		for size in [
+			'efficient-tiny', 
+			'efficient-mini', 
+			'efficient-small', 
+			'efficient-base',
+		]
+		# + ['efficient-large', 'efficient-xl', 'efficient-xxl']
+	] + 
+	[f'google/t5-efficient-base-{ablation}'
+		for ablation in [
+			f'dl{i}' for i in range(2,9,2)
+		] +
+		[
+			f'el{i}' for i in range(2,9,2)
+		] +
+		[
+			f'nl{i}' for i in (2**i for i in range(1,4,1))
+		]
+	] +
+	[f'google/t5-efficient-mini-{ablation}'
+		for ablation in [
+			f'nl{i}' for i in [6, 8, 12, 24]
+		]
 	]
-	# + ['large', 'xl', 'xxl']
-}
+)
 
 def generate(
 	grammar: PCFG, 

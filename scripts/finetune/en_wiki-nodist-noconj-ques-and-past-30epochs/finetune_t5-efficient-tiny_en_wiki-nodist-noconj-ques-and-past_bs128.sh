@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=t5-efficient-tiny-finetune-tense-en_wiki-nodist-noconj-ques-and-past-30epochs
+#SBATCH --job-name=t5-efficient-tiny-finetune-tense-en_wiki-nodist-noconj-ques-and-past
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -29,10 +29,3 @@ python core/run_seq2seq.py \
 	--overwrite_output_dir \
 	--predict_with_generate \
 	--num_train_epochs 30.0
-
-
-
-
-
-
-
