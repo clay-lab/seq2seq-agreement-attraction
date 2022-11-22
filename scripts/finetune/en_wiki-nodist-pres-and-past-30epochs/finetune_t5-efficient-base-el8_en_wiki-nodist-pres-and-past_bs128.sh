@@ -22,7 +22,7 @@ python core/run_seq2seq.py \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nodist-pres-and-past/en_wiki-nodist-pres-and-past_train.json.gz \
 	--validation_file data/en_wiki-nodist-pres-and-past/en_wiki-nodist-pres-and-past_dev.json.gz \
-	--output_dir outputs/en_wiki-nodist-pres-and-past-30epochs/t5-efficient-base-el8-finetuning-en_wiki-nodist-pres-and-past-bs128/ \
+	--output_dir outputs/en_wiki-nodist-pres-and-past/t5-efficient-base-el8-finetuning-en_wiki-nodist-pres-and-past-bs128/ \
 	--per_device_train_batch_size=4 \
 	--gradient_accumulation_steps=32 \
 	--per_device_eval_batch_size=16 \
