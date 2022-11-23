@@ -45,6 +45,8 @@ ALL_MODELS: Set[str] = set(
 	]
 )
 
+ N_EPOCHS: int = 30
+
 def generate(
 	grammar: PCFG, 
 	start: str = None, 
@@ -599,13 +601,13 @@ def create_scripts(
 		'	--task translation_src_to_tgt \\',
 		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
 		'	--validation_file data/[DEV_LANG]/[DEV_LANG]_dev.json.gz \\',
-		'	--output_dir outputs/[MODEL]-finetuning-[TRAIN_LANG]-bs128/ \\',
+		f'	--output_dir outputs/[TRAIN_LANG]-{N_EPOCHS}epochs/[MODEL]-finetuning-[TRAIN_LANG]-bs128/ \\',
 		'	--per_device_train_batch_size=4 \\',
 		'	--gradient_accumulation_steps=32 \\',
 		'	--per_device_eval_batch_size=16 \\',
 		'	--overwrite_output_dir \\',
 		'	--predict_with_generate \\',
-		'	--num_train_epochs 10.0'
+		f'	--num_train_epochs {N_EPOCHS}.0'
 	]) + '\n'
 	
 	eval_script = script.replace('finetune', 'eval')

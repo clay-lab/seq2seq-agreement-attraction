@@ -22,7 +22,7 @@ python core/run_seq2seq.py \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nointe-noconj-pres-and-past/en_wiki-nointe-noconj-pres-and-past_train.json.gz \
 	--validation_file data/en_RC_PP-dist-pres/en_RC_PP-dist-pres_test.json.gz \
-	--output_dir outputs/en_wiki-nointe-noconj-pres-and-past/t5-efficient-base-nl4-finetuning-en_wiki-nointe-noconj-pres-and-past-bs128/ \
+	--output_dir outputs/en_wiki-nointe-noconj-pres-and-past-30epochs/t5-efficient-base-nl4-finetuning-en_wiki-nointe-noconj-pres-and-past-bs128/ \
 	--per_device_train_batch_size=8 \
 	--per_device_eval_batch_size=16 \
 	--overwrite_output_dir \
