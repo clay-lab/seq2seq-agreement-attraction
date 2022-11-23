@@ -45,7 +45,7 @@ ALL_MODELS: Set[str] = set(
 	]
 )
 
- N_EPOCHS: int = 30
+N_EPOCHS: int = 30
 
 def generate(
 	grammar: PCFG, 
