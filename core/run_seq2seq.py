@@ -636,7 +636,7 @@ def main():
 				if trainer.is_world_process_zero():
 					with open(output_pred_file, "w") as writer:
 						for pred in tokenizer.batch_decode(predictions.predictions, skip_special_tokens=True):
-							writer.write(pred + "\n")
+							writer.write(f'{pred}\n')
 			
 			metrics = run_metrics(output_pred_file, data_args, return_results='list')
 			
