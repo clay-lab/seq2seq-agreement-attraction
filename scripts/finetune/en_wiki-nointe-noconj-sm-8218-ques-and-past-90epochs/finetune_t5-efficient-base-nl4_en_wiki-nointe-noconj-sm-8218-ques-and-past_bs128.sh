@@ -22,7 +22,7 @@ python core/run_seq2seq.py \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nointe-noconj-sm-8218-ques-and-past/en_wiki-nointe-noconj-sm-8218-ques-and-past_train.json.gz \
 	--validation_file data/en_wiki-nointe-noconj-sm-8218-ques-and-past/en_wiki-nointe-noconj-sm-8218-ques-and-past_dev.json.gz \
-	--output_dir outputs/en_wiki-nointe-noconj-sm-8218-ques-and-past-30epochs/t5-efficient-base-nl4-finetuning-en_wiki-nointe-noconj-sm-8218-ques-and-past-bs128/ \
+	--output_dir outputs/en_wiki-nointe-noconj-sm-8218-ques-and-past-90epochs/t5-efficient-base-nl4-finetuning-en_wiki-nointe-noconj-sm-8218-ques-and-past-bs128/ \
 	--per_device_train_batch_size=4 \
 	--gradient_accumulation_steps=32 \
 	--per_device_eval_batch_size=16 \

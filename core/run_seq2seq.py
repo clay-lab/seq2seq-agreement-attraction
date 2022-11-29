@@ -632,7 +632,7 @@ def main():
 				)
 				
 				predictions = trainer.predict(test_dataset=eval_dataset, max_length=100)
-				
+								
 				if trainer.is_world_process_zero():
 					with open(output_pred_file, "w") as writer:
 						for pred in tokenizer.batch_decode(predictions.predictions, skip_special_tokens=True):
