@@ -633,18 +633,6 @@ def main():
 				
 				predictions = trainer.predict(test_dataset=eval_dataset, max_length=100)
 				
-				# need to turn off "predict with generate to get values"
-				# then the results are in the form of a dataclass with fields
-				# 'predictions', 'label_ids' (appears to correspond to the predicted words, but in
-				# a not easy-to-decode way, and 'metrics' (i.e., stuff we don't care about).
-				# predictions.predictions is a length-2 tuple. index 0 contains a numpy ndarray
-				# of shape (n_sentences_in_test_dataset, max_length_of_sentence_in_tokens, approximately size_of_vocab (a bit bigger, not sure why)),
-				# and index 1 contains a numpy ndarray of shape (n_sentences_in_test_dataset, ??? (17), 256).
-				# it looks like index 0 corresponds to the logits, but I'm not sure what index 1 is
-				# nor where the extra indices come from (probably padding to make it a multiple of 8?)
-				# index 1 appears to be probabilities of something, but given that the length of each index is 256,
-				# I'm not sure what 
-								
 				if trainer.is_world_process_zero():
 					with open(output_pred_file, "w") as writer:
 						for pred in tokenizer.batch_decode(predictions.predictions, skip_special_tokens=True):
