@@ -22,9 +22,9 @@ python core/run_seq2seq.py \
 	--task translation_src_to_tgt \
 	--train_file data/en_wiki-nointe-noconj-sm-5050-pres/en_wiki-nointe-noconj-sm-5050-pres_train.json.gz \
 	--validation_file data/en_RC_PP_gen-dist-pres/en_RC_PP_gen-dist-pres_test.json.gz \
-	--output_dir outputs/en_wiki-nointe-noconj-sm-5050-pres-30epochs/t5-efficient-base-finetuning-en_wiki-nointe-noconj-sm-5050-pres-bs128/ \
+	--output_dir outputs/en_wiki-nointe-noconj-sm-5050-pres-90epochs/t5-efficient-base-finetuning-en_wiki-nointe-noconj-sm-5050-pres-bs128/ \
 	--per_device_train_batch_size=8 \
 	--per_device_eval_batch_size=16 \
 	--overwrite_output_dir \
 	--predict_with_generate \
-	--num_train_epochs 30.0
+	--num_train_epochs 90.0
