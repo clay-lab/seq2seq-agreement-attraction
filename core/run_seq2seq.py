@@ -577,9 +577,15 @@ def main():
 	
 	# Training
 	if training_args.do_train:
-		train_result = trainer.train(
-			model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
-		)
+		try:
+			# allows us to continue training a stored checkpoint
+			train_result = trainer.train(
+				model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
+			)
+		except ValueError:
+			# allows us to train a local model which does not have a checkpoint saved
+			train_result = trainer.train()
+		
 		trainer.save_model() # Saves the tokenizer too for easy upload
 		
 		output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
