@@ -8,6 +8,7 @@ dependencies:
   - python=3.8.8
   - setuptools <=59.5.0
   - conda-forge::transformers
+  - tokenizers=0.12.0
   - importlib-metadata
   - datasets
   - pandas
