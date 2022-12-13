@@ -60,6 +60,21 @@ logger = logging.getLogger(__name__)
 
 MULTILINGUAL_TOKENIZERS = (MBartTokenizer, MBartTokenizerFast)
 
+# t5 checkpoints pretrained by Aaron Mueller
+MUELLER_T5_MODELS: Set[str] = set(
+	[f'{pfx}-1m' for pfx in ['babyt5', 'c4', 'wikit5', 'simplewiki']] +
+	['babyt5-5m'] +
+	[m for pfx in ['c4', 'wikit5', 'simplewiki']
+		for m in 
+		[f'{pfx}-{i}m' for i in [10, 100]]
+	] +
+	[m for pfx in ['c4', 'wikit5']
+		for m in
+		[f'{pfx}-{i}' for i in ['100m_withchildes', '1b']]
+	] +
+	['c4-small-nl8']
+)
+
 @dataclass
 class ModelArguments:
 	"""
@@ -355,15 +370,25 @@ def main():
 		use_auth_token=True if model_args.use_auth_token else None,
 	)
 	
-	model = AutoModelForSeq2SeqLM.from_pretrained(
-		model_args.model_name_or_path,
-		from_tf=bool(".ckpt" in model_args.model_name_or_path),
-		config=config,
-		cache_dir=model_args.cache_dir,
-		revision=model_args.model_revision,
-		use_auth_token=True if model_args.use_auth_token else None,
-	)
-	
+	if model_args.model_name_or_path in MUELLER_T5_MODELS:
+		model = AutoModelForSeq2SeqLM.from_pretrained(
+			model_args.model_name_or_path,
+			from_flax=True,
+			config=config,
+			cache_dir=model_args.cache_dir,
+			revision=model_args.model_revision,
+			use_auth_token=True if model_args.use_auth_token else None,
+		)
+	else:
+		model = AutoModelForSeq2SeqLM.from_pretrained(
+			model_args.model_name_or_path,
+			from_tf=bool(".ckpt" in model_args.model_name_or_path),
+			config=config,
+			cache_dir=model_args.cache_dir,
+			revision=model_args.model_revision,
+			use_auth_token=True if model_args.use_auth_token else None,
+		)
+		
 	if model_args.random_weights:
 		logger.info("Randomizing weights")
 		model.init_weights()
