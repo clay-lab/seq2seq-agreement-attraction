@@ -71,8 +71,7 @@ MUELLER_T5_MODELS: Set[str] = set(
 	[m for pfx in ['c4', 'wikit5']
 		for m in
 		[f'{pfx}-{i}' for i in ['100m_withchildes', '1b']]
-	] +
-	['c4-small-nl8']
+	]
 )
 
 @dataclass
