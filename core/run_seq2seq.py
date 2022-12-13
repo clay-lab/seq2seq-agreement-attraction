@@ -370,7 +370,7 @@ def main():
 		use_auth_token=True if model_args.use_auth_token else None,
 	)
 	
-	if model_args.model_name_or_path in MUELLER_T5_MODELS:
+	if os.path.basename(model_args.model_name_or_path) in MUELLER_T5_MODELS:
 		model = AutoModelForSeq2SeqLM.from_pretrained(
 			model_args.model_name_or_path,
 			from_flax=True,
