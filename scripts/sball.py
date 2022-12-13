@@ -13,15 +13,22 @@ def sbatch_all(s):
 	any additional preceding arguments are passed to sbatch.
 	'''
 	scripts = s[-1].split()
-	args 	= [arg for arg in s[:-1] if not arg.startswith('name=')]
+	args 	= [arg for arg in s[:-1] if not arg.startswith('name=') and not arg.startswith('regex=')]
 	name 	= [arg.split('=')[1] for arg in s[:-1] if arg.startswith('name=')]
 	name 	= name[0] if name else []
+	
+	regex 	= [arg.split('=')[1] for arg in s[:-1] if arg.startswith('regex=')]
+	regex 	= regex[0] if regex else []
 	
 	globbed = []
 	for script in scripts:
 		globbed.append(glob(script, recursive=True))
-	
+		
 	globbed = [script for l in globbed for script in l if script.endswith('.sh')]
+	
+	if regex:
+		globbed = [script for script in globbed if re.match(regex, script)]
+	
 	if len(globbed) == 0:
 		print('No scripts matching expression "' + s[-1] + '" found.')
 		sys.exit(0)
