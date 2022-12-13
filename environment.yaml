@@ -19,3 +19,6 @@ dependencies:
   - matplotlib
   - protobuf
   - nltk
+  - jax
+  - conda-forge::cuda-nvcc
+  - nvidia::cuda-nvcc
