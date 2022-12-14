@@ -748,23 +748,23 @@ def main():
 			for var in [None] + grouping_vars:
 				# fig, ax = plt.subplots(1, tight_layout=True)
 				for c in metric_names:
+					plot_kwargs = common_kwargs.copy()
+					plot_kwargs.update(dict(y=c))
+					plot_kwargs.update(dict(
+						data = eval_preds[['iteration', c, 'tense']]
+							if var is None 
+							else eval_preds.assign(
+								var = [
+									' + '.join([p, str(v)]) 
+									if not (isinstance(v,float) and np.isnan(v)) 
+									else ' + '.join([p, 'None']) 
+										for p, v in zip(eval_preds.tense, eval_preds[var])
+								]
+							).sort_values(['iteration',var]).reset_index(drop=True)[['iteration', c, 'var']]
+					))
+					
 					# if all values are na, no plot can or should be created
 					if not all(eval_preds[c].isna()):
-						plot_kwargs = common_kwargs.copy()
-						plot_kwargs.update(dict(y=c))
-						plot_kwargs.update(dict(
-							data = eval_preds[['iteration', c, 'tense']]
-								if var is None 
-								else eval_preds.assign(
-									var = [
-										' + '.join([p, str(v)]) 
-										if not (isinstance(v,float) and np.isnan(v)) 
-										else ' + '.join([p, 'None']) 
-											for p, v in zip(eval_preds.tense, eval_preds[var])
-									]
-								).sort_values(['iteration',var]).reset_index(drop=True)[['iteration', c, 'var']]
-						))
-						
 						# filter to only the stuff that can actually be plotted (bc you can't plot something
 						# that doesn't exist!)
 						plot_kwargs['data'] = plot_kwargs['data'][(~plot_kwargs['data'][c].isna())].reset_index(drop=True)
@@ -778,21 +778,21 @@ def main():
 							
 							sns.lineplot(**plot_kwargs)
 							if var is not None or c == metric_names[-1]:
-								format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
+								format_plot(title=title, var=var, c=c, data=plot_kwargs['data'], pdf=pdf)
 						else:
 							logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
 							logger.warning('No plot will be created.')
 							logger.warning('If this is unexpected, check your metric.')
 							if var is not None or c == metric_names[-1]:
-								format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
+								format_plot(title=title, var=var, c=c, data=plot_kwargs['data'], pdf=pdf)
 					else:
 						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
 						logger.warning('No plot will be created.')
 						logger.warning('If this is unexpected, check your metric.')
 						if var is not None or c == metric_names[-1]:
-							format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
+							format_plot(title=title, var=var, c=c, data=plot_kwargs['data'], pdf=pdf)
 
-def format_plot(title: str, var: str, data: pd.DataFrame, pdf) -> None:
+def format_plot(title: str, var: str, c: str, data: pd.DataFrame, pdf) -> None:
 	ax = plt.gca()
 	
 	legend_kwargs = dict(fontsize=8)
@@ -806,7 +806,9 @@ def format_plot(title: str, var: str, data: pd.DataFrame, pdf) -> None:
 		# most recent value for the group as a compromise, since this
 		# reflects the most recent state of the model's predictions,
 		# even though it might be inaccurate for earlier steps
-		counts = plot_kwargs['data'].groupby('iteration').value_counts(['var']).groupby(['var']).last()
+		if not 'var' in data.columns:
+			breakpoint()
+		counts = data.groupby('iteration').value_counts(['var']).groupby(['var']).last()
 		counts.index = counts.index.astype(str) # cast to string for boolean and int indices
 		labels = [label + f' ($n={counts[label]}$)'for label in labels]
 	else:
