@@ -777,82 +777,86 @@ def main():
 								plot_kwargs.update(dict(style='tense'))
 							
 							sns.lineplot(**plot_kwargs)
-							
 							if var is not None or c == metric_names[-1]:
-								ax = plt.gca()
-								
-								legend_kwargs = dict(fontsize=8)
-								
-								handles, labels = ax.get_legend_handles_labels()
-								if var is not None:
-									# add count for each condition to legend
-									# sometimes a metric is NA because of the model's prediction 
-									# at a particular iteration. however, it's impractical to show
-									# the counts for each group for each iteration. we choose the 
-									# most recent value for the group as a compromise, since this
-									# reflects the most recent state of the model's predictions,
-									# even though it might be inaccurate for earlier steps
-									counts = plot_kwargs['data'].groupby('iteration').value_counts(['var']).groupby(['var']).last()
-									counts.index = counts.index.astype(str) # cast to string for boolean and int indices
-									labels = [label + f' ($n={counts[label]}$)'for label in labels]
-								else:
-									# this is for the overall plot
-									# since we plot each line one at a time due to the data format, we end up with a lot of
-									# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
-									# indices = [
-									# 			i 
-									# 			for i, label in enumerate(labels + [None]) 
-									# 				if 	not label == None and 
-									# 			   		label == (labels + [None])[i+1] or
-									# 			   		(
-									# 			   			(label in ['pres', 'past'] and 
-									# 			   			i > len(labels)-3)
-									# 			   		)
-									# 		]
-									# get the list of unique labels, and exclude the task prefix variable
-									indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
-									handles = [handles[i] for i in indices]
-									labels = [labels[i] for i in indices]
-								
-								legend_kwargs.update(dict(handles=handles, labels=labels))
-								
-								ax.legend(**legend_kwargs)
-								ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
-								
-								# set axis ticks and limits for display
-								plt.xticks([c for c in plot_kwargs['data'].iteration.unique() if c % 1000 == 0])
-								_, ymargin = ax.margins()
-								ax.set_ylim((0-ymargin, 1+ymargin))
-								
-								# set ylabel
-								ax.set_ylabel('proportion')
-								
-								fig = plt.gcf()
-								# fig.tight_layout()
-								fig.set_size_inches(8, 6)
-								suptitle = f'{title}' 
-								suptitle += (
-									f'\ngroups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
-									if var is not None 
-									else ''
-								)
-								fig.suptitle(suptitle)
-								fig.tight_layout()
-								# pdf.savefig(bbox_inches='tight')
-								pdf.savefig()
-								plt.close()
-								del fig
+								format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
 						else:
 							logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
 							logger.warning('No plot will be created.')
 							logger.warning('If this is unexpected, check your metric.')
+							if var is not None or c == metric_names[-1]:
+								format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
 					else:
 						logger.warning(f'All results of "{c}" are NaN (grouping_vars={var}).')
 						logger.warning('No plot will be created.')
 						logger.warning('If this is unexpected, check your metric.')
-					
-				# del fig
-					
+						if var is not None or c == metric_names[-1]:
+							format_plot(title=title, var=var, data=plot_kwargs['data'], pdf=pdf)
+
+def format_plot(title: str, var: str, data: pd.DataFrame, pdf) -> None:
+	ax = plt.gca()
+	
+	legend_kwargs = dict(fontsize=8)
+	
+	handles, labels = ax.get_legend_handles_labels()
+	if var is not None:
+		# add count for each condition to legend
+		# sometimes a metric is NA because of the model's prediction 
+		# at a particular iteration. however, it's impractical to show
+		# the counts for each group for each iteration. we choose the 
+		# most recent value for the group as a compromise, since this
+		# reflects the most recent state of the model's predictions,
+		# even though it might be inaccurate for earlier steps
+		counts = plot_kwargs['data'].groupby('iteration').value_counts(['var']).groupby(['var']).last()
+		counts.index = counts.index.astype(str) # cast to string for boolean and int indices
+		labels = [label + f' ($n={counts[label]}$)'for label in labels]
+	else:
+		# this is for the overall plot
+		# since we plot each line one at a time due to the data format, we end up with a lot of
+		# duplicated legend entries we don't want. this removes them by filtering to the first instance of each
+		# indices = [
+		# 			i 
+		# 			for i, label in enumerate(labels + [None]) 
+		# 				if 	not label == None and 
+		# 			   		label == (labels + [None])[i+1] or
+		# 			   		(
+		# 			   			(label in ['pres', 'past'] and 
+		# 			   			i > len(labels)-3)
+		# 			   		)
+		# 		]
+		# get the list of unique labels, and exclude the task prefix variable
+		indices = [labels.index(label) for label in list(dict.fromkeys(labels)) if not label in ['pres', 'past']]
+		handles = [handles[i] for i in indices]
+		labels = [labels[i] for i in indices]
+	
+	legend_kwargs.update(dict(handles=handles, labels=labels))
+	
+	ax.legend(**legend_kwargs)
+	ax.get_legend().set_title(f'tense + {var.replace("_", " ")}' if var is not None else 'metric')
+	
+	# set axis ticks and limits for display
+	plt.xticks([c for i, c in enumerate(data.iteration.unique()) if c % 2 == 1])
+	_, ymargin = ax.margins()
+	ax.set_ylim((0-ymargin, 1+ymargin))
+	
+	# set ylabel
+	ax.set_ylabel('proportion')
+	
+	fig = plt.gcf()
+	# fig.tight_layout()
+	fig.set_size_inches(8, 6)
+	suptitle = f'{title}' 
+	suptitle += (
+		f'\ngroups: tense + {var.replace("_", " ")}\n{c.replace("_", " ")}' 
+		if var is not None 
+		else ''
+	)
+	fig.suptitle(suptitle)
+	fig.tight_layout()
+	# pdf.savefig(bbox_inches='tight')
+	pdf.savefig()
+	plt.close()
+	del fig
+		
 if __name__ == '__main__':
 	
 	main()
