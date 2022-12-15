@@ -262,17 +262,17 @@ class DataTrainingArguments:
 				if extension == 'gz':
 					extension = self.train_file.split('.')[-2]
 				
-				assert extension in ["csv", "json"], "`train_file` should be a csv or a json file."
+				assert extension in ['csv', 'json'], "`train_file` should be a csv or a json file."
 			
 			if self.validation_file is not None:
-				extension = self.validation_file.split(".")[-1]
+				extension = self.validation_file.split('.')[-1]
 				
 				if extension == 'gz':
 					extension = self.validation_file.split('.')[-2]
 				
-				assert extension in ["csv", "json"], "`validation_file` should be a csv or a json file."
+				assert extension in ['csv', 'json'], "`validation_file` should be a csv or a json file."
 		
-		if not self.task.startswith("summarization") and not self.task.startswith("translation"):
+		if not self.task.startswith('summarization') and not self.task.startswith('translation'):
 			raise ValueError(
 				"`task` should be summarization, summarization_{dataset}, translation or translation_{xx}_to_{yy}."
 			)
@@ -867,6 +867,7 @@ def plot_learning_curves(
 					format_plot(title=title, var=var, c=c, data=plot_kwargs['data'], pdf=pdf)
 
 def run_seq2seq() -> None:
+	breakpoint()
 	model_args, data_args, training_args = parse_arguments()
 	setup_logging(training_args=training_args)
 	config, tokenizer, model = load_tokenizer_and_model(model_args=model_args, training_args=training_args)
