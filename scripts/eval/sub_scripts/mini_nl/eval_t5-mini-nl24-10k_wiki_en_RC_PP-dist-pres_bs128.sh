@@ -19,12 +19,8 @@ source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 python core/run_seq2seq.py \
 	--model_name_or_path 'google/t5-efficient-mini-nl24' \
 	--do_learning_curve \
-	--task translation_src_to_tgt \
-	--train_file data/en_RC_PP-nodist-pres-and-past/en_RC_PP-nodist-pres-and-past_train.json.gz \
 	--validation_file data/en_RC_PP-dist-pres/en_RC_PP-dist-pres_test.json.gz \
 	--output_dir outputs/t5-efficient-mini-nl24-10k-finetuning-en_wiki-nodist-pres-and-past-bs128/ \
-	--per_device_train_batch_size=8 \
-	--per_device_eval_batch_size=16 \
-	--overwrite_output_dir \
+	--per_device_eval_batch_size 16 \
 	--predict_with_generate \
         

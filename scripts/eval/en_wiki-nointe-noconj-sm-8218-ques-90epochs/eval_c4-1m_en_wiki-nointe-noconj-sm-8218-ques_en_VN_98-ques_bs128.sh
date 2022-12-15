@@ -19,12 +19,7 @@ source activate /gpfs/gibbs/project/frank/ref4/conda_envs/py38-agratt
 python core/run_seq2seq.py \
 	--model_name_or_path 'mueller-t5-checkpoints/c4-1m' \
 	--do_learning_curve \
-	--task translation_src_to_tgt \
-	--train_file data/en_wiki-nointe-noconj-sm-8218-ques/en_wiki-nointe-noconj-sm-8218-ques_train.json.gz \
 	--validation_file data/en_VN_98-ques/en_VN_98-ques_test.json.gz \
 	--output_dir outputs/en_wiki-nointe-noconj-sm-8218-ques-90epochs/c4-1m-finetuning-en_wiki-nointe-noconj-sm-8218-ques-bs128/ \
-	--per_device_train_batch_size=8 \
-	--per_device_eval_batch_size=16 \
-	--overwrite_output_dir \
-	--predict_with_generate \
-	--num_train_epochs 90.0
+	--per_device_eval_batch_size 16 \
+	--predict_with_generate

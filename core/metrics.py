@@ -330,6 +330,14 @@ def exact_match(
 	return pred_sentence == gold_sentence
 
 @metric
+def ignorecase_exact_match(
+	pred_sentence: str, 
+	gold_sentence: str
+) -> bool:
+	'''Do the passed sentences match exactly when ignoring case?'''
+	return pred_sentence.lower() == gold_sentence.lower()
+
+@metric
 def main_verb_reinflected_correctly(
 	pred_sentence: str,
 	gold_sentence: str,
