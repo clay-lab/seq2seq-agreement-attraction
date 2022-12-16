@@ -440,18 +440,26 @@ def prepare_datasets(
 	# Temporarily set max_target_length for training.
 	max_target_length 	= data_args.max_target_length
 	padding 			= 'max_length' if data_args.pad_to_max_length else False
-	def preprocess_function(examples: Dict[str, Dict]) -> Dict[str,'torch.Tensor']:
+	
+	def preprocess_function(examples: Dict[str, Dict[str,str]]) -> Dict[str,'torch.Tensor']:
 		inputs 			= [ex['prefix'] + ex['src'] for ex in examples['translation']]
 		targets 		= [ex['tgt'] for ex in examples['translation']]
 		
 		inputs 			= [prefix + inp for inp in inputs]
 		model_inputs 	= tokenizer(
-							inputs, 
-							text_target=targets, 
-							max_length=max(data_args.max_source_length, max_target_length), 
+							inputs,
+							max_length=data_args.max_source_length, 
 							padding=padding, 
 							truncation=True
 						)
+		
+		with tokenizer.as_target_tokenizer():
+			model_inputs['labels'] = tokenizer(
+										targets, 
+										max_length=max_target_length, 
+										padding=padding,
+										truncation=True
+									)['input_ids']
 		
 		if data_args.prefix_from_file:
 			lang_ids 	= [tokenizer.convert_tokens_to_ids(ex['lang']) for ex in examples['translation']]
