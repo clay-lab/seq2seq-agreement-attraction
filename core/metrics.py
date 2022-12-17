@@ -36,8 +36,8 @@ GRAMMARS_PARSING = {
 }
 
 PARSERS = {
-	'en_RC_PP'		: nltk.parse.ViterbiParser,
-	'en_RC_PP_gen'	: nltk.parse.ViterbiParser,
+	'en_RC_PP'		: nltk.parse.ChartParser,
+	'en_RC_PP_gen'	: nltk.parse.ChartParser,
 	'en_VN_98'		: nltk.parse.ChartParser,
 	'en_FVN_02'		: nltk.parse.ChartParser,
 }

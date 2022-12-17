@@ -11,7 +11,7 @@ english_grammar_VN_98 = CFG.fromstring("""
 	NP -> N | NP PP
 	N -> N_sg | N_pl | ADJ N_sg | ADJ N_pl
 	
-	VP -> V | V ADJ
+	VP -> V | V ADJ | V EOS
 	PP -> P DP
 	
 	D -> 'the'
@@ -37,6 +37,8 @@ english_grammar_VN_98 = CFG.fromstring("""
 	N_pl -> 'gardens' | 'platforms' | 'lights' | 'soldiers' | 'presidents' | 'museums' | 'cities'
 	
 	V -> 'do' | 'does' | 'seem'
+	
+	EOS -> '[EOS]'
 	
 	P -> 'from' | 'by' | 'of' | 'with' | 'for' | 'in' | 'about' | 'around' | 'to' | 'on'
 	

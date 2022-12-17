@@ -17,35 +17,8 @@ from contextlib import suppress
 from nltk import PCFG, Tree
 from nltk import nonterminals, Nonterminal, Production
 
-ALL_MODELS: Set[str] = set(
-	[f'google/t5-{size}' 
-		for size in [
-			'efficient-tiny', 
-			'efficient-mini', 
-			'efficient-small', 
-			'efficient-base',
-		]
-		# + ['efficient-large', 'efficient-xl', 'efficient-xxl']
-	] + 
-	[f'google/t5-efficient-base-{ablation}'
-		for ablation in [
-			f'dl{i}' for i in range(2,9,2)
-		] +
-		[
-			f'el{i}' for i in range(2,9,2)
-		] +
-		[
-			f'nl{i}' for i in (2**i for i in range(1,4,1))
-		]
-	] +
-	[f'google/t5-efficient-mini-{ablation}'
-		for ablation in [
-			f'nl{i}' for i in [6, 8, 12, 24]
-		]
-	]
-)
-
-N_EPOCHS: int = 30
+from .english_grammar_RC_PP import PAST_PRES
+from ..constants import *
 
 def generate(
 	grammar: PCFG, 
@@ -184,6 +157,24 @@ def grep_next_subtree(
 		if not isinstance(t[position],str) and re.search(expr, str(t[position].label())):
 			return t[position]
 
+def grep_next_subtree_position(
+	t: Tree,
+	expr: str
+) -> Tree:
+	"""
+	Get the position of the next subtree whose label matches the expr.
+	The order is determined by height, with higher nodes returned first.
+	Note that this is different from the behavior of Tree.subtrees, which returns results
+	ordered by linear precedence.
+	:param t: Tree: the tree to search.
+	:param expr: a regex to search when searching the tree
+	:returns Tree: the next highest subtree in t whose label's symbol matches expr
+	"""
+	positions = sorted(t.treepositions(), key=lambda t: (len(t), t))
+	for position in positions:
+		if not isinstance(t[position],str) and re.search(expr, str(t[position].label())):
+			return position
+
 def get_english_RC_PP_pos_seq(pos_seq: List[str]) -> str:
 	'''Remove unwanted info from English pos tags for comparison purposes and return as a string.'''
 	pos_seq = [
@@ -242,7 +233,19 @@ def get_english_RC_PP_example_metadata(
 		main_clause_object = grep_next_subtree(main_clause_object[0], r'^NP$')
 	
 	main_clause_object = grep_next_subtree(main_clause_object, r'^N_')
+	
+	# word number of main clause verb
+	main_clause_verb_phrase_position = grep_next_subtree_position(source, r'^VP$')
+	num_words_before_verb = 0
+	for position in source.treepositions():
+		if position == main_clause_verb_phrase_position:
+			break
 		
+		if isinstance(source[position], str):
+			num_words_before_verb += 1
+	
+	metadata.update({'predict_identical_until_given_word_number': num_words_before_verb})
+	
 	# number of main clause object
 	if main_clause_object.label().symbol().endswith('sg'):
 		metadata.update({'object_number': 'sg'})
@@ -252,6 +255,9 @@ def get_english_RC_PP_example_metadata(
 	# main verb
 	main_clause_verb = grep_next_subtree(source, r'^V$')
 	metadata.update({'main_verb': main_clause_verb[0]})
+	metadata.update({
+		'predict_from_given_words_after_identical': [PAST_PRES[num][main_clause_verb[0]] for num in PAST_PRES]
+	})
 	
 	# number of total, singular, and plural noun phrases between the head noun of the subject and the verb
 	main_clause_full_subject = grep_next_subtree(source, r'^DP$')
@@ -311,8 +317,6 @@ def get_english_RC_PP_example_metadata(
 		]
 		
 		distractor_structures = ['both' if len(ls) == 2 else ''.join(ls) for ls in distractor_path_labels]
-		
-		if distractor_structures == []: breakpoint()
 		
 		# if we've done all late attachment, it gives us a weird result. since the models aren't getting structures
 		# we want to treat this like early attachment, which means rewriting some stuff
@@ -382,7 +386,7 @@ def create_dataset_json(
 	"""
 	file_prefix = file_prefix + '_' if file_prefix and not (file_prefix[-1] in ['-', '_']) else ''
 	create_data_path(os.path.join('data', file_prefix))
-
+	
 	for name, n_examples in splits.items():
 		metadata = []
 		if not os.path.exists(os.path.join('data', file_prefix + name + '.json.gz')) or overwrite:
@@ -420,6 +424,177 @@ def create_dataset_json(
 			print('')
 		else:
 			print(f'{name} dataset already exists. Skipping. Use overwrite=True to force regeneration.')
+
+def create_balanced_dataset_json(
+	grammar: PCFG, 
+	ex_generator: Callable, 
+	file_prefix: str = '',
+	overwrite: bool = False,
+) -> None:
+	"""
+	Create a dataset json file that can be read using the datasets module's dataset loader.
+	Also outputs a companion json that records various linguistic properties of each sentence.
+	:param grammar: PCFG: a PCFG object
+	:param ex_generator: function: a function that creates a pair of sentences and associated tags from the grammar
+	:param file_prefix: str: an identifier to add to the beginning of the output file names
+	:param overwrite: bool: whether to overwrite existing datasets with matching names
+	:param splits: kwargs mapping a set label to the number of examples to generate for that set
+				   ex: train=10000, dev=1000, test=10000
+	"""
+	TARGET_N_EXAMPLES_OF_TYPE: Dict[str,int] = {
+		'S': 64, 'P': 64,
+		
+		'SS_RC': 256, 'SP_RC': 256, 'PP_RC': 256, 'PS_RC': 256,
+		'SS_PP': 256, 'SP_PP': 256, 'PP_PP': 256, 'PS_PP': 256,
+		
+		'SSS_PP_PP': 256, 'SSP_PP_PP': 256, 'SPS_PP_PP': 256, 'SPP_PP_PP': 256,
+		'PPP_PP_PP': 256, 'PPS_PP_PP': 256, 'PSP_PP_PP': 256, 'PSS_PP_PP': 256,
+		
+		'SSS_RC_RC': 256, 'SSP_RC_RC': 256, 'SPS_RC_RC': 256, 'SPP_RC_RC': 256,
+		'PPP_RC_RC': 256, 'PPS_RC_RC': 256, 'PSP_RC_RC': 256, 'PSS_RC_RC': 256,
+		
+		'SSS_PP_RC': 256, 'SSP_PP_RC': 256, 'SPS_PP_RC': 256, 'SPP_PP_RC': 256,
+		'PPP_PP_RC': 256, 'PPS_PP_RC': 256, 'PSP_PP_RC': 256, 'PSS_PP_RC': 256,
+		
+		'SSS_RC_PP': 256, 'SSP_RC_PP': 256, 'SPS_RC_PP': 256, 'SPP_RC_PP': 256,
+		'PPP_RC_PP': 256, 'PPS_RC_PP': 256, 'PSP_RC_PP': 256, 'PSS_RC_PP': 256,
+	}
+	
+	def get_example_category(source: Tree) -> str:
+		"""
+		Get the category of the example for making a balanced dataset.
+		"""
+		main_clause_subject = grep_next_subtree(source, r'^DP$')
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^NP$')
+		while grep_next_subtree(main_clause_subject[0], r'^NP$'):
+			main_clause_subject = grep_next_subtree(main_clause_subject[0], r'^NP$')
+		
+		main_clause_subject = grep_next_subtree(main_clause_subject, r'^N_')
+		
+		if main_clause_subject.label().symbol().endswith('sg'):
+			condition = 'S'
+		else:
+			condition = 'P'
+		
+		main_clause_full_subject = grep_next_subtree(source, r'^DP$')
+		main_clause_full_subject = grep_next_subtree(main_clause_full_subject, r'^NP$')
+		labels = get_labels(main_clause_full_subject)
+		
+		intervener_positions = [
+			position 
+			for position in main_clause_full_subject.treepositions() 
+				if  hasattr(main_clause_full_subject[position], '_label') and
+					(
+						main_clause_full_subject[position].label().symbol().endswith('sg') or 
+						main_clause_full_subject[position].label().symbol().endswith('pl')
+					)
+		][1:]
+		
+		# none of our conditions have more than two interveners
+		if len(intervener_positions) > 2:
+			return
+		
+		for intervener_position in intervener_positions:
+			if main_clause_full_subject[intervener_position].label().symbol().endswith('sg'):
+				condition += 'S'
+			else:
+				condition += 'P'
+		
+		intervener_path_labels = [
+			[
+				'RC' if str(main_clause_full_subject[path[:i]].label()) == 'CP' else 'PP'
+				for i, _ in enumerate(path)
+				if str(main_clause_full_subject[path[:i]].label()) in ['CP', 'PP']
+			][-1] for path in intervener_positions
+		]
+		
+		intervener_path_labels = '_'.join(intervener_path_labels)
+		
+		if intervener_path_labels:
+			condition += f'_{intervener_path_labels}'
+		
+		return condition	
+	
+	def get_example_preamble(source: Tree) -> str:	
+		"""
+		Gets the preamble of the example (i.e., everything before the main clause verb)
+		"""
+		main_clause_verb_phrase_position = grep_next_subtree_position(source, r'^VP$')
+		preamble = ''
+		for position in source.treepositions():
+			if isinstance(source[position], str):
+				preamble += f'{source[position]} '
+			
+			if position == main_clause_verb_phrase_position:
+				main_clause_verb = grep_next_subtree(source[position], r'^V$')[0]
+				preamble += f'{main_clause_verb} '
+				break
+		
+		return preamble
+	
+	file_prefix = f'{file_prefix}_' if file_prefix and not (file_prefix[-1] in ['-', '_']) else ''
+	create_data_path(os.path.join('data', file_prefix))
+	name = 'test'
+	
+	if os.path.exists(os.path.join('data', f'{file_prefix}{name}.json.gz')) and not overwrite:
+		print(
+			f'{os.path.basename(file_prefix)}{name} dataset already exists. '
+			'Skipping. Use overwrite=True to force regeneration.'
+		)
+		return
+	
+	metadata = []
+	examples = []
+	unique_preambles = []
+	distinct_examples_so_far_of_type = {k: 0 for k in TARGET_N_EXAMPLES_OF_TYPE}
+	skips = 0
+	
+	while distinct_examples_so_far_of_type != TARGET_N_EXAMPLES_OF_TYPE:
+		source, pfx, target = ex_generator(grammar)
+		example_metadata = get_example_metadata(grammar, source, pfx, target)
+		example_category = get_example_category(source)
+		example_metadata['condition'] = example_category
+		example = {
+			'translation': {
+				'src'	: format_tree_string(source, grammar.lang, pfx), 
+				'prefix': pfx, 
+				'tgt'	: format_tree_string(target, grammar.lang, pfx)
+			}
+		}
+		preamble = get_example_preamble(source)
+		if (
+			example_category is not None
+			and distinct_examples_so_far_of_type[example_category] != TARGET_N_EXAMPLES_OF_TYPE[example_category]
+			and not preamble in unique_preambles
+		):
+			examples.append(example)
+			metadata.append(example_metadata)
+			unique_preambles.append(preamble)
+			distinct_examples_so_far_of_type[example_category] += 1
+			progress = f'{sum(distinct_examples_so_far_of_type.values())}/{sum(TARGET_N_EXAMPLES_OF_TYPE.values())}'
+			progress += f', {100*(sum(distinct_examples_so_far_of_type.values())/sum(TARGET_N_EXAMPLES_OF_TYPE.values())):.2f}%'
+			print(
+				f'{example_category:<{max([len(k) for k in TARGET_N_EXAMPLES_OF_TYPE])}}: '
+				f'{distinct_examples_so_far_of_type[example_category]:>{max([len(str(k)) for k in TARGET_N_EXAMPLES_OF_TYPE.values()])}}'
+				f'\t{progress} (skipped: {skips})\r',
+				end=''
+			)
+		else:
+			skips += 1
+	
+	print(f'Saving examples to data/{file_prefix}{name}.json.gz')
+	with gzip.open(os.path.join('data', f'{file_prefix}{name}.json.gz'), 'wt', encoding='utf-8') as f:
+		for ex in tqdm(examples):
+			_ = json.dump(ex, f, ensure_ascii=False)
+			_ = f.write('\n')
+	
+	print(f'Saving metadata to data/{file_prefix}{name}_metadata.json.gz')
+	with gzip.open(os.path.join('data', f'{file_prefix}{name}_metadata.json.gz'), 'wt', encoding='utf-8') as f:
+		for ex in tqdm(metadata):
+			_ = json.dump(ex, f, ensure_ascii=False)
+			_ = f.write('\n')
+	
+	print('')
 
 def combine_dataset_jsons(
 	file_prefix: str = '',
@@ -508,43 +683,6 @@ def create_tense_datasets(
 			
 			print('')
 
-"""
-def combine_language_datasets_for_tense(
-	langs: List[str], 
-	**kwargs
-) -> None:
-	'''
-	Creates dataset jsons for each len 2 permutation of languages passed.
-	:param langs: List[str]: a list of language ids corrseponding to directories in ./data/
-							  Each language id must have two directories in data associated with it.
-							  One is pres_{lang} and the other is past_{lang}.
-							  The pres_{lang} directories must contain a file named pres_{lang}_train.json.gz.
-							  The past_{lang} directories must contain a file named past_{lang}_train.json.gz.
-	
-	:outputs: For each possible two-way permutation of languages in langs:
-			  a directory in data named pres_{lang1}_{lang2}, with the following datasets jsons.
-			  pres_{lang1}_{lang2}_train.json.gz, containing positive-positive/presative training examples from lang1 
-			  	and positive-positive training examples from lang2.
-	'''
-	langs = list(load_config(langs).keys()) if langs is None or isinstance(langs,str) else langs
-	
-	all_pairs = permutations(langs, 2)
-	for lang1, lang2 in all_pairs:
-		print(f'Creating datasets for {lang1} -> {lang2}')
-		dirname 	= f'pres_{lang1}_{lang2}'
-		file_prefix = os.path.join(dirname, f'pres_{lang1}_{lang2}_train')
-		
-		# create the training dataset with past-pres/past examples from lang1 and past-past examples from lang2
-		combine_dataset_jsons(
-			file_prefix, 
-			os.path.join(f'pres_{lang1}', f'pres_{lang1}_train.json.gz'), 
-			os.path.join(f'pos_{lang2}', f'pos_{lang2}_train.json.gz'),
-			**kwargs
-		)
-		
-		print('')
-"""
-
 def create_datasets_from_config(
 	configs: Dict[str,List] = None, 
 	**kwargs
@@ -584,7 +722,7 @@ def create_scripts(
 		'#SBATCH --nodes=1',
 		'#SBATCH --cpus-per-task=1',
 		'#SBATCH --mem=30GB',
-		'#SBATCH --time=10:00:00',
+		'#SBATCH --time=02-00:00:00',
 		'#SBATCH --gpus=v100:1',
 		'#SBATCH --partition=gpu',
 		'#SBATCH --mail-type=END,FAIL,INVALID_DEPEND',
@@ -598,28 +736,24 @@ def create_scripts(
 		'python core/run_seq2seq.py \\',
 		"	--model_name_or_path '[MODEL_NAME_OR_PATH]' \\",
 		'	--do_train \\',
-		'	--task translation_src_to_tgt \\',
 		'	--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
-		'	--validation_file data/[DEV_LANG]/[DEV_LANG]_dev.json.gz \\',
 		f'	--output_dir outputs/[TRAIN_LANG]-{N_EPOCHS}epochs/[MODEL]-finetuning-[TRAIN_LANG]-bs128/ \\',
-		'	--per_device_train_batch_size=4 \\',
-		'	--gradient_accumulation_steps=32 \\',
-		'	--per_device_eval_batch_size=16 \\',
+		'	--per_device_train_batch_size 4 \\',
+		'	--gradient_accumulation_steps 32 \\',
 		'	--overwrite_output_dir \\',
-		'	--predict_with_generate \\',
-		f'	--num_train_epochs {N_EPOCHS}.0'
+		f'	--num_train_epochs {DEFAULT_N_EPOCHS}.0'
 	]) + '\n'
 	
 	eval_script = script.replace('finetune', 'eval')
 	eval_script = eval_script.replace('--do_train \\', '--do_learning_curve \\')
-	eval_script = eval_script.replace('[DEV_LANG]', '[TEST_LANG]')
-	eval_script = re.sub(r'_dev(\.|_)', '_test\\1', eval_script)
-	eval_script = eval_script.replace('--per_device_train_batch_size=4', '--per_device_train_batch_size=8')
-	eval_script = eval_script.replace('	--gradient_accumulation_steps=32 \\\n', '')
 	eval_script = eval_script.replace(
-		'	--predict_with_generate \\\n	--num_train_epochs 10.0', 
-		'	--predict_with_generate \\'
+		'--train_file data/[TRAIN_LANG]/[TRAIN_LANG]_train.json.gz \\',
+		'--validation_file data/[TEST_LANG]/[TEST_LANG]_test.json.gz'
 	)
+	eval_script = eval_script.replace('--per_device_train_batch_size 4', '--per_device_eval_batch_size 16')
+	eval_script = eval_script.replace('\t--gradient_accumulation_steps=32 \\\n', '')
+	eval_script = eval_script.replace('\t--overwrite_output_dir \\\n', '')
+	eval_script = eval_script.replace(f'--num_train_epochs {DEFAULT_N_EPOCHS}.0', '--predict_with_generate')
 	
 	configs 	= load_config() if configs is None else configs
 	all_pairs 	= [tuple(pair) for pair in configs['pairs']] if 'pairs' in configs else []
@@ -639,7 +773,6 @@ def create_scripts(
 			
 			train_lang 		= lang[0]
 			dev_lang 		= lang[0]
-			# train_dash_lang = lang[0].replace('_', '-')
 			test_lang 		= lang[1]
 			
 			file_name 		= '_'.join(lang) if lang[0] != lang[1] else lang[0]
@@ -653,7 +786,6 @@ def create_scripts(
 				):
 					lang_ft_script = lang_ft_script.replace('[TRAIN_LANG]', train_lang)
 					lang_ft_script = lang_ft_script.replace('[DEV_LANG]', dev_lang)
-					# lang_ft_script = lang_ft_script.replace('[TRAIN-LANG]', train_dash_lang)
 					if not os.path.exists(os.path.join('scripts', 'finetune', f'finetune_{model.split("/")[-1]}_{file_name}_bs128.sh')) or overwrite:
 						with open(os.path.join('scripts', 'finetune', f'finetune_{model.split("/")[-1]}_{file_name}_bs128.sh'), 'wt') as out_file:
 							out_file.write(lang_ft_script)
@@ -661,32 +793,11 @@ def create_scripts(
 				if os.path.isfile(os.path.join('data', test_lang, f'{test_lang}_test.json.gz')):
 					lang_ev_script = lang_ev_script.replace('[TRAIN_LANG]', train_lang)
 					lang_ev_script = lang_ev_script.replace('[TEST_LANG]', test_lang)
-					# lang_ev_script = lang_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
 					if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model.split("/")[-1]}_{file_name}_bs128.sh')) or overwrite:
 						with open(os.path.join('scripts', 'eval', f'eval_{model.split("/")[-1]}_{file_name}_bs128.sh'), 'wt') as out_file:
 							out_file.write(lang_ev_script)
-					
-			"""
-			# if we have multiple languages, create a zero-shot version of the eval script
-			if len(lang) == 2:
-				lang_zs_ev_script 	= eval_script.replace(
-					f'#SBATCH --job-name={model}-eval-pres-[TRAIN-LANG]',
-					'f#SBATCH --job-name={model}-eval-pres-[TRAIN-ZS-LANG]-zs'
-				)
-				train_lang 			= lang[0]
-				train_dash_lang 	= lang[0]
-				
-				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN_LANG]', train_lang)
-				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TEST_LANG]', test_lang)
-				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-ZS-LANG]', '-'.join(lang))
-				lang_zs_ev_script 	= lang_zs_ev_script.replace('[TRAIN-LANG]', train_dash_lang)
-				
-				if not os.path.exists(os.path.join('scripts', 'eval', f'eval_{model}_pres_{"_".join(lang)}_bs128_zs.sh')) or overwrite:
-					with open(os.path.join('scripts', 'eval', f'eval_{model}_pres_{"_".join(lang)}_bs128_zs.sh'), 'wt') as out_file:
-						out_file.write(lang_zs_ev_script)
-			"""
-	
-def load_config(path: 'str or Pathlike' = None) -> Dict[str,List]:
+
+def load_config(path: str = None) -> Dict[str,List]:
 	'''
 	Loads a dataset creation config file from disk.
 	

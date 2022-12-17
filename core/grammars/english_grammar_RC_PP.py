@@ -2,7 +2,7 @@
 import re
 import random
 
-from nltk import Tree, PCFG
+from nltk import Tree, PCFG, CFG
 from nltk import nonterminals
 
 from typing import *
@@ -56,8 +56,13 @@ english_grammar_RC_PP = PCFG.fromstring("""
 	
 	D -> 'the' [1.0]
 	
-	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
-	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
+	N_sg -> 'student' [0.1]  | 'professor' [0.1]  | 'headmaster' [0.1]  | 'friend' [0.1]
+	N_sg -> 'assistant' [0.1] | 'dean' [0.1] | 'advisor' [0.1] | 'colleague' [0.1]
+	N_sg -> 'president' [0.1] | 'chancellor' [0.1]
+	
+	N_pl -> 'students' [0.1] | 'professors' [0.1] | 'headmasters' [0.1] | 'friends' [0.1] 
+	N_pl -> 'assistants' [0.1] | 'deans' [0.1] | 'advisors' [0.1] | 'colleagues' [0.1] 
+	N_pl -> 'presidents' [0.1] | 'chancellors' [0.1]
 	
 	V -> 'helped' [0.1] | 'visited' [0.1] | 'liked' [0.1] 
 	V -> 'bothered' [0.1] | 'inspired' [0.1] | 'recruited' [0.1] 
@@ -83,8 +88,13 @@ english_grammar_RC_PP_gen = PCFG.fromstring("""
 	
 	D -> 'the' [1.0]
 	
-	N_sg -> 'house' [0.25]  | 'shed' [0.25]  | 'tree' [0.25]  | 'machine' [0.25]
-	N_pl -> 'houses' [0.25] | 'sheds' [0.25] | 'trees' [0.25] | 'machines' [0.25] 
+	N_sg -> 'house' [0.1]  | 'shed' [0.1]  | 'tree' [0.1]  | 'machine' [0.1]
+	N_sg -> 'building' [0.1]  | 'church' [0.1]  | 'office' [0.1]  | 'motel' [0.1]
+	N_sg -> 'barn' [0.1]  | 'shack' [0.1]
+		
+	N_pl -> 'houses' [0.1] | 'sheds' [0.1] | 'trees' [0.1] | 'machines' [0.1] 
+	N_pl -> 'buildings' [0.1] | 'churches' [0.1] | 'offices' [0.1] | 'motels' [0.1] 
+	N_pl -> 'barns' [0.1] | 'shacks' [0.1]
 	
 	V -> 'blocked' [0.1] | 'dwarfed' [0.1] | 'overlooked' [0.1] 
 	V -> 'faced' [0.1] | 'predated' [0.1] | 'eclipsed' [0.1] 
@@ -128,11 +138,9 @@ def reinflect(t: Tree) -> Tree:
 	return t_copy
 
 def pres_or_past(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
-	
 	return present_pair(grammar) if random.random() < pres_p else past_pair(grammar)
 
 def pres_or_past_no_pres_dist(grammar: PCFG, pres_p: float = 0.5) -> Tuple:
-	
 	source, pfx, target = pres_or_past(grammar, pres_p)
 	
 	# for English, we do not care about distractors in the past tense, since they do not affect attraction
@@ -199,70 +207,84 @@ def test(grammar: PCFG = english_grammar_RC_PP, ex_generator: Callable = pres_or
 
 # These grammars ARE ONLY USED FOR PARSING during evaluation
 # we include the past tense forms as well for parsing the embedded clauses, which are not reinflected
-english_grammar_RC_PP_pres_tense = PCFG.fromstring("""
-	S -> DP VP [1.0]
+english_grammar_RC_PP_pres_tense = CFG.fromstring("""
+	S -> DP VP
 	
-	DP -> D NP [1.0]
-	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
-	N -> N_sg [0.5] | N_pl [0.5]
+	DP -> D NP
+	NP -> N | NP PP | NP CP
+	N -> N_sg | N_pl
 	
-	VP -> V DP [1.0]
+	VP -> V DP | V EOS
 	
-	PP -> P DP [1.0]
-	CP -> C VP [1.0]
+	PP -> P DP
+	CP -> C VP
 	
-	D -> 'the' [1.0]
+	D -> 'the'
 	
-	N_sg -> 'student' [0.25]  | 'professor' [0.25]  | 'headmaster' [0.25]  | 'friend' [0.25]
-	N_pl -> 'students' [0.25] | 'professors' [0.25] | 'headmasters' [0.25] | 'friends' [0.25] 
+	N_sg -> 'student' | 'professor' | 'headmaster' | 'friend'
+	N_sg -> 'assistant'| 'dean'| 'advisor'| 'colleague'
+	N_sg -> 'president'| 'chancellor'
 	
-	V -> 'help' [0.033] | 'helps' [0.033] | 'helped' [0.034]
-	V -> 'visit' [0.033] | 'visits' [0.033] | 'visited' [0.034] 
-	V -> 'like' [0.033] | 'likes' [0.033] | 'liked' [0.034]
-	V -> 'bother' [0.033] | 'bothers' [0.033] | 'bothered' [0.034]
-	V -> 'inspire' [0.033] | 'inspires' [0.033] | 'inspired' [0.034]
-	V -> 'recruit' [0.033] | 'recruits' [0.033] | 'recruited' [0.034]
-	V -> 'assist' [0.033] | 'assists' [0.033] | 'assisted' [0.034]
-	V -> 'confound' [0.033] | 'confounds' [0.033] | 'confounded' [0.034]
-	V -> 'accost' [0.033] | 'accosts' [0.033] | 'accosted' [0.034]
-	V -> 'avoid' [0.033] | 'avoids' [0.033] |  'avoided' [0.034]
+	N_pl -> 'students'| 'professors'| 'headmasters'| 'friends'
+	N_pl -> 'assistants'| 'deans'| 'advisors'| 'colleagues'
+	N_pl -> 'presidents'| 'chancellors'
 	
-	P -> 'of' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'with' [0.2]
+	V -> 'help' | 'helps' | 'helped'
+	V -> 'visit' | 'visits' | 'visited' 
+	V -> 'like' | 'likes' | 'liked'
+	V -> 'bother' | 'bothers' | 'bothered'
+	V -> 'inspire' | 'inspires' | 'inspired'
+	V -> 'recruit' | 'recruits' | 'recruited'
+	V -> 'assist' | 'assists' | 'assisted'
+	V -> 'confound' | 'confounds' | 'confounded'
+	V -> 'accost' | 'accosts' | 'accosted'
+	V -> 'avoid' | 'avoids' |  'avoided'
 	
-	C -> 'that' [1.0]
+	EOS -> '[EOS]'
+	
+	P -> 'of' | 'near' | 'by' | 'behind' | 'with'
+	
+	C -> 'that'
 """)
 setattr(english_grammar_RC_PP_pres_tense, 'lang', 'en_RC_PP')
 
-english_grammar_RC_PP_pres_tense_gen = PCFG.fromstring("""
-	S -> DP VP [1.0]
+english_grammar_RC_PP_pres_tense_gen = CFG.fromstring("""
+	S -> DP VP
 	
-	DP -> D NP [1.0]
-	NP -> N [0.8] | NP PP [0.1] | NP CP [0.1]
-	N -> N_sg [0.5] | N_pl [0.5]
+	DP -> D NP
+	NP -> N | NP PP | NP CP
+	N -> N_sg | N_pl
 	
-	VP -> V DP [1.0]
+	VP -> V DP | V EOS
 	
-	PP -> P DP [1.0]
-	CP -> C VP [1.0]
+	PP -> P DP
+	CP -> C VP
 	
-	D -> 'the' [1.0]
+	D -> 'the'
 	
-	N_sg -> 'house' [0.25]  | 'shed' [0.25]  | 'tree' [0.25]  | 'machine' [0.25]
-	N_pl -> 'houses' [0.25] | 'sheds' [0.25] | 'trees' [0.25] | 'machines' [0.25] 
+	N_sg -> 'house' | 'shed' | 'tree' | 'machine'
+	N_sg -> 'building' | 'church' | 'office' | 'motel'
+	N_sg -> 'barn' | 'shack'
+		
+	N_pl -> 'houses'| 'sheds'| 'trees'| 'machines'
+	N_pl -> 'buildings'| 'churches'| 'offices'| 'motels'
+	N_pl -> 'barns'| 'shacks'
 	
-	V -> 'blocked' [0.033] | 'blocks' [0.033] | 'block' [0.034]
-	V -> 'dwarfed' [0.033] | 'dwarfs' [0.033] | 'dwarf' [0.034]
-	V -> 'overlooked' [0.033] | 'overlooks' [0.033] | 'overlook' [0.034] 
-	V -> 'faced' [0.033] | 'faces' [0.033] | 'face' [0.034] 
-	V -> 'predated' [0.033] | 'predates' [0.033] | 'predate' [0.034]
-	V -> 'eclipsed' [0.033] | 'eclipses' [0.033] | 'eclipse' [0.034] 
-	V -> 'concealed' [0.033] | 'conceals' [0.033] | 'conceal' [0.034] 
-	V -> 'shaded' [0.033] | 'shades' [0.033] | 'shade' [0.034]
-	V -> 'overshadowed' [0.033] | 'overshadows' [0.033] | 'overshadow' [0.034]
-	V -> 'adjoined' [0.033] | 'adjoins' [0.033] | 'adjoin' [0.034]
+	V -> 'blocked' | 'blocks' | 'block'
+	V -> 'dwarfed' | 'dwarfs' | 'dwarf'
+	V -> 'overlooked' | 'overlooks' | 'overlook' 
+	V -> 'faced' | 'faces' | 'face' 
+	V -> 'predated' | 'predates' | 'predate'
+	V -> 'eclipsed' | 'eclipses' | 'eclipse' 
+	V -> 'concealed' | 'conceals' | 'conceal' 
+	V -> 'shaded' | 'shades' | 'shade'
+	V -> 'overshadowed' | 'overshadows' | 'overshadow'
+	V -> 'adjoined' | 'adjoins' | 'adjoin'
 	
-	P -> 'beside' [0.2] | 'near' [0.2] | 'by' [0.2] | 'behind' [0.2] | 'around' [0.2]
+	EOS -> '[EOS]'
 	
-	C -> 'that' [1.0]
+	P -> 'beside' | 'near' | 'by' | 'behind' | 'around'
+	
+	C -> 'that'
 """)
 setattr(english_grammar_RC_PP, 'lang', 'en_RC_PP_gen')

@@ -11,7 +11,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	N -> N_sg | N_pl | Comp Comp N_sg | Comp Comp N_pl
 	N -> ADJ N_sg | ADJ N_pl
 	
-	VP -> V ADJ
+	VP -> V ADJ | V EOS
 	PP -> P DP
 	
 	D -> 'the' | 'my'
@@ -45,6 +45,8 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	N_pl -> 'bridges' | 'streams'
 	
 	V -> 'seem' | 'seems'
+	
+	EOS -> '[EOS]'
 	
 	P -> 'from' | 'of' | 'by' | 'for' | 'about' | 'with' | 'in' | 'on' | 'around' | 'over' | 'to' | 'near' 
 	

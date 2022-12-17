@@ -37,223 +37,28 @@ import pandas as pd
 import seaborn as sns
 
 from typing import *
-from datasets import load_dataset
-from metrics import compute_metrics
+from datasets import load_dataset, Dataset
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from dataclasses import dataclass, field
 from transformers import (
 	AutoConfig,
 	AutoModelForSeq2SeqLM,
 	AutoTokenizer,
 	DataCollatorForSeq2Seq,
 	HfArgumentParser,
-	Seq2SeqTrainer,
-	Seq2SeqTrainingArguments,
 	default_data_collator,
 	set_seed,
 )
 from transformers.trainer_utils import is_main_process
 
+from .metrics import compute_metrics
+from .constants import *
+from .model_arguments import ModelArguments
+from .data_training_arguments import DataTrainingArguments
+from .seq2seq_agreement_attraction_training_arguments import Seq2SeqAgreementAttractionTrainingArguments
+from .seq2seq_agreement_attraction_trainer import Seq2SeqAgreementAttractionTrainer
+
 logger = logging.getLogger(__name__)
-
-MUELLER_T5_MODELS: Set[str] = set(
-	[f'{pfx}-1m' for pfx in ['babyt5', 'c4', 'wikit5', 'simplewiki']] +
-	['babyt5-5m'] +
-	[m for pfx in ['c4', 'wikit5', 'simplewiki']
-		for m in 
-		[f'{pfx}-{i}m' for i in [10, 100]]
-	] +
-	[m for pfx in ['c4', 'wikit5']
-		for m in
-		[f'{pfx}-{i}' for i in ['100m_withchildes', '1b']]
-	]
-)
-
-@dataclass
-class ModelArguments:
-	"""
-	Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
-	"""
-	model_name_or_path: str = field(
-		metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
-	)
-	
-	config_name: Optional[str] = field(
-		default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
-	)
-	
-	tokenizer_name: Optional[str] = field(
-		default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
-	)
-	
-	cache_dir: Optional[str] = field(
-		default=None,
-		metadata={"help": "Where to store the pretrained models downloaded from huggingface.co"},
-	)
-	
-	use_fast_tokenizer: bool = field(
-		default=True,
-		metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
-	)
-	
-	model_revision: str = field(
-		default="main",
-		metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
-	)
-	
-	use_auth_token: bool = field(
-		default=False,
-		metadata={
-			"help": "Will use the token generated when running `transformers-cli login` (necessary to use this script "
-			"with private models)."
-		},
-	)
-	
-	random_weights: bool = field(
-		default=False,
-		metadata={
-			"help": "Randomize weights when loading a model."
-		},
-	)
-	
-	random_layers: str = field(
-		default=None,
-		metadata={"help": "Randomize specific layers of the model. Format: comma-separated list of integers (e.g., `7,8,9` )."
-		},
-	)
-
-@dataclass
-class DataTrainingArguments:
-	"""Arguments pertaining to what data we are going to input our model for training and eval."""
-	dataset_name: Optional[str] = field(
-		default=None, 
-		metadata={"help": "The name of the dataset to use (via the datasets library)."}
-	)
-	
-	dataset_config_name: Optional[str] = field(
-		default=None,
-		metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
-	)
-	
-	train_file: Optional[str] = field(
-		default=None, 
-		metadata={"help": "The input training data file (a text file)."}
-	)
-	
-	do_learning_curve: Optional[bool] = field(
-		default=False, 
-		metadata={"help": "Whether to run predictions on all checkpoints for a learning curve."}
-	)
-	
-	validation_file: Optional[str] = field(
-		default=None,
-		metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."},
-	)
-	
-	overwrite_cache: bool = field(
-		default=False, 
-		metadata={"help": "Overwrite the cached training and evaluation sets"}
-	)
-	
-	preprocessing_num_workers: Optional[int] = field(
-		default=None,
-		metadata={"help": "The number of processes to use for the preprocessing."},
-	)
-	
-	max_source_length: Optional[int] = field(
-		default=1024,
-		metadata={
-			"help": "The maximum total input sequence length after tokenization. Sequences longer "
-			"than this will be truncated, sequences shorter will be padded."
-		},
-	)
-	
-	max_target_length: Optional[int] = field(
-		default=128,
-		metadata={
-			"help": "The maximum total sequence length for target text after tokenization. Sequences longer "
-			"than this will be truncated, sequences shorter will be padded."
-		},
-	)
-	
-	val_max_target_length: Optional[int] = field(
-		default=None,
-		metadata={
-			"help": "The maximum total sequence length for validation target text after tokenization. Sequences longer "
-			"than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
-			"This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
-			"during ``evaluate`` and ``predict``."
-		},
-	)
-	
-	pad_to_max_length: bool = field(
-		default=False,
-		metadata={
-			"help": "Whether to pad all samples to model maximum sentence length. "
-			"If False, will pad the samples dynamically when batching to the maximum length in the batch. More "
-			"efficient on GPU but very bad for TPU."
-		},
-	)
-	
-	max_train_samples: Optional[int] = field(
-		default=None,
-		metadata={
-			"help": "For debugging purposes or quicker training, truncate the number of training examples to this "
-			"value if set."
-		},
-	)
-	
-	max_val_samples: Optional[int] = field(
-		default=None,
-		metadata={
-			"help": "For debugging purposes or quicker training, truncate the number of validation examples to this "
-			"value if set."
-		},
-	)
-	
-	prefix_from_file: bool = field(
-		default=False,
-		metadata={
-			"help": "Whether to set language ids independently for each example."
-		},
-	)
-	
-	eval_beams: Optional[int] = field(default=None, metadata={"help": "Number of beams to use for evaluation."})
-	
-	ignore_pad_token_for_loss: bool = field(
-		default=True,
-		metadata={
-			"help": "Whether to ignore the tokens corresponding to padded labels in the loss computation or not."
-		},
-	)
-	
-	source_prefix: Optional[str] = field(
-		default=None, metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
-	)
-	
-	def __post_init__(self):
-		if self.dataset_name is None and self.train_file is None and self.validation_file is None:
-			raise ValueError("Need either a dataset name or a training/validation file.")
-		else:
-			if self.train_file is not None:
-				extension = self.train_file.split(".")[-1]
-			
-				if extension == 'gz':
-					extension = self.train_file.split('.')[-2]
-				
-				assert extension in ['csv', 'json'], "`train_file` should be a csv or a json file."
-			
-			if self.validation_file is not None:
-				extension = self.validation_file.split('.')[-1]
-				
-				if extension == 'gz':
-					extension = self.validation_file.split('.')[-2]
-				
-				assert extension in ['csv', 'json'], "`validation_file` should be a csv or a json file."
-		
-		if self.val_max_target_length is None:
-			self.val_max_target_length = self.max_target_length
 
 def sort_human(l: List[str]) -> List[str]:
 	'''
@@ -273,7 +78,11 @@ def parse_arguments() -> Tuple:
 	# See all possible arguments in src/transformers/training_args.py
 	# or by passing the --help flag to this script.
 	# We now keep distinct sets of args, for a cleaner separation of concerns.
-	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
+	parser = HfArgumentParser((
+		ModelArguments, 
+		DataTrainingArguments, 
+		Seq2SeqAgreementAttractionTrainingArguments
+	))
 	
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 	
@@ -293,7 +102,7 @@ def parse_arguments() -> Tuple:
 	
 	return model_args, data_args, training_args
 
-def setup_logging(training_args: Seq2SeqTrainingArguments) -> None:
+def setup_logging(training_args: Seq2SeqAgreementAttractionTrainingArguments) -> None:
 	# Setup logging
 	logging.basicConfig(
 		format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -313,7 +122,7 @@ def setup_logging(training_args: Seq2SeqTrainingArguments) -> None:
 	if is_main_process(training_args.local_rank):
 		transformers.utils.logging.set_verbosity_info()
 
-def load_datasets(data_args: DataTrainingArguments) -> 'Dataset':
+def load_datasets(data_args: DataTrainingArguments) -> Dataset:
 	# Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
 	# or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
 	# (the dataset will be downloaded automatically from the datasets Hub).
@@ -346,10 +155,10 @@ def load_datasets(data_args: DataTrainingArguments) -> 'Dataset':
 
 def load_config_tokenizer_model(
 	model_args: ModelArguments, 
-	training_args: Seq2SeqTrainingArguments,
+	training_args: Seq2SeqAgreementAttractionTrainingArguments,
 	config: AutoConfig = None,
-	tokenizer: 'PreTrainedTokenizer' = None,
-	model: 'PreTrainedModel' = None,
+	tokenizer: AutoTokenizer = None,
+	model: AutoModelForSeq2SeqLM = None,
 	model_path: str = None
 ) -> Tuple:
 	# Load pretrained model and tokenizer
@@ -398,18 +207,11 @@ def load_config_tokenizer_model(
 		logger.info('Randomizing weights')
 		model.init_weights()
 	
-	# # Set decoder_start_token_id
-	# if model.config.decoder_start_token_id is None and isinstance(tokenizer, MULTILINGUAL_TOKENIZERS):
-	# 	if data_args.target_prefix:
-	# 		model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(data_args.target_prefix)
-	# 	elif not data_args.prefix_from_file:
-	# 		raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
-	
 	return config, tokenizer, model
 
 def get_task_prefix(
 	data_args: DataTrainingArguments, 
-	model: 'PreTrainedModel'
+	model: AutoModelForSeq2SeqLM
 ) -> str:
 	# Get the default prefix if None is passed.
 	if data_args.source_prefix is None:
@@ -424,11 +226,11 @@ def get_task_prefix(
 	return prefix
 
 def prepare_datasets(
-	datasets: 'Dataset', 
+	datasets: Dataset, 
 	prefix: str, 
-	training_args: Seq2SeqTrainingArguments, 
+	training_args: Seq2SeqAgreementAttractionTrainingArguments, 
 	data_args: DataTrainingArguments,
-	tokenizer: 'PreTrainedTokenizer',
+	tokenizer: AutoTokenizer,
 ) -> Tuple:
 	# Preprocessing the datasets.
 	# We need to tokenize inputs and targets.
@@ -444,7 +246,7 @@ def prepare_datasets(
 	def preprocess_function(examples: Dict[str, Dict[str,str]]) -> Dict[str,'torch.Tensor']:
 		inputs 			= [ex['prefix'] + ex['src'] for ex in examples['translation']]
 		targets 		= [ex['tgt'] for ex in examples['translation']]
-		
+			
 		inputs 			= [prefix + inp for inp in inputs]
 		model_inputs 	= tokenizer(
 							inputs,
@@ -460,13 +262,6 @@ def prepare_datasets(
 										padding=padding,
 										truncation=True
 									)['input_ids']
-		
-		if data_args.prefix_from_file:
-			lang_ids 	= [tokenizer.convert_tokens_to_ids(ex['lang']) for ex in examples['translation']]
-			for idx, (model_input, label) in enumerate(zip(model_inputs['input_ids'], model_inputs['labels'])):
-				model_input[-1] = lang_ids[idx]
-				label[-1] 		= lang_ids[idx] 
-				label 			= [lang_ids[idx]] + label
 		
 		# If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
 		# padding in the loss.
@@ -513,13 +308,13 @@ def prepare_datasets(
 	return dataset, data_collator
 
 def setup_trainer(
-	model: 'PreTrainedModel',
-	tokenizer: 'PreTrainedTokenizer',
-	training_args: Seq2SeqTrainingArguments,
-	dataset: 'Dataset',
+	model: AutoModelForSeq2SeqLM,
+	tokenizer: AutoTokenizer,
+	training_args: Seq2SeqAgreementAttractionTrainingArguments,
+	dataset: Dataset,
 	data_collator: Union[default_data_collator, DataCollatorForSeq2Seq],
-) -> Seq2SeqTrainer:
-	'''Sets up and return the Seq2SeqTrainer.'''
+) -> Seq2SeqAgreementAttractionTrainer:
+	'''Sets up and return the Seq2SeqAgreementAttractionTrainer.'''
 	if training_args.do_train:
 		total_batch_size 	= training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps
 		updates_per_epoch 	= int(dataset.num_rows/total_batch_size)
@@ -533,7 +328,7 @@ def setup_trainer(
 		training_args.save_steps = save_steps
 	
 	# Initialize our Trainer
-	trainer = Seq2SeqTrainer(
+	trainer = Seq2SeqAgreementAttractionTrainer(
 				model=model,
 				args=training_args,
 				train_dataset=dataset if training_args.do_train else None,
@@ -544,7 +339,7 @@ def setup_trainer(
 	
 	return trainer
 
-def run_train(trainer: Seq2SeqTrainer) -> None:
+def run_train(trainer: Seq2SeqAgreementAttractionTrainer) -> None:
 	try:
 		# allows us to continue training a stored checkpoint
 		train_result = trainer.train(
@@ -579,11 +374,11 @@ def run_train(trainer: Seq2SeqTrainer) -> None:
 def run_eval(
 	model_args: ModelArguments,
 	data_args: DataTrainingArguments, 
-	training_args: Seq2SeqTrainingArguments, 
-	dataset: 'Dataset',
+	training_args: Seq2SeqAgreementAttractionTrainingArguments, 
+	dataset: Dataset,
 	data_collator: Union[default_data_collator, DataCollatorForSeq2Seq],
 	config: AutoConfig,
-	tokenizer: 'PreTrainedTokenizer',
+	tokenizer: AutoTokenizer,
 ) -> None:
 	'''
 	Runs evaluation on model predictions for each checkpoint.
@@ -685,7 +480,7 @@ def run_eval(
 		grouping_vars = [
 				k 
 				for k in list(metadata[0].keys()) 
-					if 	not any(x in k for x in ['pos_seq', 'history']) and
+					if 	not any(x in k for x in ['pos_seq', 'history', 'predict']) and
 						not k in [
 							'tense', 
 							'each_distractor_structure', 
