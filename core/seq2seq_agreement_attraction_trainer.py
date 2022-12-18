@@ -194,7 +194,7 @@ class Seq2SeqAgreementAttractionTrainer(Seq2SeqTrainer):
 		original_gen_kwargs = self._gen_kwargs.copy()
 		self._gen_kwargs.update({'prefix_allowed_tokens_fn': prefix_allowed_tokens_fn})
 		
-		predictions = super().prediction_step(
+		predictions = super(Seq2SeqAgreementAttractionTrainer, self).prediction_step(
 			model=model, inputs=inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys
 		)
 		

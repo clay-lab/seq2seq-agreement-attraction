@@ -259,6 +259,22 @@ def ignorecase_exact_match(
 	return pred_sentence.lower() == gold_sentence.lower()
 
 @metric
+def first_word_identical(
+	pred_sentence: str, 
+	gold_sentence: str
+) -> bool:
+	'''Do the first words of the sentences match?'''
+	return pred_sentence.split()[0] == gold_sentence.split()[0]
+
+@metric
+def ignorecase_first_word_identical(
+	pred_sentence: str, 
+	gold_sentence: str
+) -> bool:
+	'''Do the first words of the sentences match when case is ignored?'''
+	return pred_sentence.lower().split()[0] == gold_sentence.lower().split()[0]
+
+@metric
 def agreement_attraction_any(
 	pred_sentence: str,
 	gold_sentence: str,
