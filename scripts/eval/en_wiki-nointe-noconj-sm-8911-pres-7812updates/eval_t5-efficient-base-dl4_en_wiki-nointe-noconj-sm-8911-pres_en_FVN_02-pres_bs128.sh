@@ -22,4 +22,5 @@ python core/run_seq2seq.py \
 	--validation_file data/en_FVN_02-pres/en_FVN_02-pres_test.json.gz \
 	--output_dir outputs/en_wiki-nointe-noconj-sm-8911-pres-7812updates/t5-efficient-base-dl4-finetuning-en_wiki-nointe-noconj-sm-8911-pres-bs128/ \
 	--per_device_eval_batch_size 16 \
-	--predict_with_generate
+	--predict_with_generate \
+	--predict_from_given_words_after_identical
