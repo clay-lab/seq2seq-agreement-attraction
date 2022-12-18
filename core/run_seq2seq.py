@@ -29,6 +29,7 @@ import re
 import gzip
 import glob
 import json
+import torch
 import logging
 import transformers
 
@@ -37,26 +38,27 @@ import pandas as pd
 import seaborn as sns
 
 from typing import *
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, DatasetDict
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from transformers import (
 	AutoConfig,
 	AutoModelForSeq2SeqLM,
 	AutoTokenizer,
-	DataCollatorForSeq2Seq,
 	HfArgumentParser,
-	default_data_collator,
 	set_seed,
 )
 from transformers.trainer_utils import is_main_process
 
-from .metrics import compute_metrics
-from .constants import *
-from .model_arguments import ModelArguments
-from .data_training_arguments import DataTrainingArguments
-from .seq2seq_agreement_attraction_training_arguments import Seq2SeqAgreementAttractionTrainingArguments
-from .seq2seq_agreement_attraction_trainer import Seq2SeqAgreementAttractionTrainer
+from metrics import compute_metrics
+from constants import *
+from model_arguments import ModelArguments
+from data_training_arguments import DataTrainingArguments
+from seq2seq_agreement_attraction_trainer import Seq2SeqAgreementAttractionTrainer
+from data_collator_for_seq2seq_agreement_attraction import DataCollatorForSeq2SeqAgreementAttraction
+from seq2seq_agreement_attraction_training_arguments import Seq2SeqAgreementAttractionTrainingArguments
+
+from safe_shared_temporary_directory import SafeSharedTemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,7 @@ def setup_logging(training_args: Seq2SeqAgreementAttractionTrainingArguments) ->
 	if is_main_process(training_args.local_rank):
 		transformers.utils.logging.set_verbosity_info()
 
-def load_datasets(data_args: DataTrainingArguments) -> Dataset:
+def load_datasets(data_args: DataTrainingArguments) -> DatasetDict:
 	# Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
 	# or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
 	# (the dataset will be downloaded automatically from the datasets Hub).
@@ -139,19 +141,44 @@ def load_datasets(data_args: DataTrainingArguments) -> Dataset:
 	# https://huggingface.co/docs/datasets/loading_datasets.html.
 	if data_args.dataset_name is not None:
 		# Downloading and loading a dataset from the hub.
-		datasets = load_dataset(data_args.dataset_name, data_args.dataset_config_name)
-	else:
-		data_files = {}
-		for split, file in zip(['train', 'validation'], [data_args.train_file, data_args.validation_file]):
-			if file is not None:
-				data_files[split] 	= file
-				extension 			= file.split('.')[-1]
-				if extension == 'gz':
-					extension 		= file.split('.')[-2]
-		
-		datasets = load_dataset(extension, data_files=data_files)
+		return load_dataset(data_args.dataset_name, data_args.dataset_config_name)
 	
-	return datasets
+	data_files = {}
+	if data_args.train_file is not None:
+		extension 			= data_args.train_file.split('.')[-1]
+		if extension == 'gz':
+			extension 		= data_args.train_file.split('.')[-2]
+		
+		return load_dataset(extension, data_files={'train': data_args.train_file})
+	
+	if data_args.validation_file is not None:
+		extension 			= data_args.validation_file.split('.')[-1]
+		if extension == 'gz':
+			extension 		= data_args.validation_file.split('.')[-2]
+		
+		with gzip.open(data_args.validation_file.replace('.json', '_metadata.json'), 'rt') as in_file:
+			metadata = [json.loads(l.strip()) for l in in_file.readlines()]
+		
+		metadata = [{
+			k: v for k, v in m.items() 
+			if k in [
+				'predict_identical_until_given_word_number', 
+				'predict_from_given_words_after_identical'
+			]
+		} for m in metadata]
+		
+		if not any(metadata):
+			return load_dataset(extension, data_files={'validation': data_args.validation_file})
+		
+		with gzip.open(data_args.validation_file, 'rt') as in_file:
+			dataset = [json.loads(l.strip()) for l in in_file.readlines()]
+		
+		for d, m in zip(dataset, metadata):
+			d['translation'].update(**m)
+		
+		# we load this way to avoid writing out a temp file,
+		# which causes issues since it'll try to load from the cache
+		return DatasetDict({'validation': Dataset.from_pandas(pd.DataFrame(data=dataset))})
 
 def load_config_tokenizer_model(
 	model_args: ModelArguments, 
@@ -237,16 +264,22 @@ def prepare_datasets(
 	if training_args.do_train:
 		column_names = datasets['train'].column_names
 	else:
-		column_names = datasets['validation'].column_names
+		column_names = [
+			column_name for column_name in datasets['validation'].column_names
+			if not column_name in [
+				'predict_identical_until_given_word_number', 
+				'predict_from_given_words_after_identical'
+			]
+		]
 	
 	# Temporarily set max_target_length for training.
 	max_target_length 	= data_args.max_target_length
 	padding 			= 'max_length' if data_args.pad_to_max_length else False
 	
-	def preprocess_function(examples: Dict[str, Dict[str,str]]) -> Dict[str,'torch.Tensor']:
+	def preprocess_function(examples: Dict[str, Dict[str,str]]) -> Dict[str, torch.Tensor]:
 		inputs 			= [ex['prefix'] + ex['src'] for ex in examples['translation']]
 		targets 		= [ex['tgt'] for ex in examples['translation']]
-			
+		
 		inputs 			= [prefix + inp for inp in inputs]
 		model_inputs 	= tokenizer(
 							inputs,
@@ -270,22 +303,33 @@ def prepare_datasets(
 				[(l if l != tokenizer.pad_token_id else -100) for l in label] for label in model_inputs['labels']
 			]
 		
+		if not training_args.do_train:
+			if any('predict_identical_until_given_word_number' in ex for ex in examples['translation']):
+				model_inputs['predict_identical_until_given_word_number'] = [
+					ex.get('predict_identical_until_given_word_number', 0) for ex in examples['translation']
+				]
+			
+			if any('predict_from_given_words_after_identical' in ex for ex in examples['translation']):
+				model_inputs['predict_from_given_words_after_identical'] = [
+					ex.get('predict_from_given_words_after_identical', None) for ex in examples['translation']
+				]
+		
 		return model_inputs
 	
 	if training_args.do_train:
-		dataset 		= datasets['train']
+		dataset 	= datasets['train']
 		
 		if data_args.max_train_samples is not None:
-			dataset 	= dataset.select(range(data_args.max_train_samples))
+			dataset = dataset.select(range(data_args.max_train_samples))
 	
 	if training_args.do_eval or data_args.do_learning_curve:
 		max_target_length 	= data_args.val_max_target_length
 		dataset 			= datasets['validation']
 		
 		if data_args.max_val_samples is not None:
-			dataset 	= dataset.select(range(data_args.max_val_samples))
+			dataset = dataset.select(range(data_args.max_val_samples))
 	
-	dataset 		= dataset.map(
+	dataset = dataset.map(
 		preprocess_function,
 		batched=True,
 		num_proc=data_args.preprocessing_num_workers,
@@ -298,12 +342,8 @@ def prepare_datasets(
 	elif training_args.do_eval or training_args.do_learning_curve:
 		setattr(dataset, 'name', os.path.basename(data_args.validation_file).replace('.json.gz', ''))
 	
-	# Data collator
-	if data_args.pad_to_max_length:
-		data_collator = default_data_collator
-	else:
-		label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
-		data_collator = DataCollatorForSeq2Seq(tokenizer, label_pad_token_id=label_pad_token_id)
+	label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+	data_collator = DataCollatorForSeq2SeqAgreementAttraction(tokenizer, label_pad_token_id=label_pad_token_id)
 	
 	return dataset, data_collator
 
@@ -312,7 +352,7 @@ def setup_trainer(
 	tokenizer: AutoTokenizer,
 	training_args: Seq2SeqAgreementAttractionTrainingArguments,
 	dataset: Dataset,
-	data_collator: Union[default_data_collator, DataCollatorForSeq2Seq],
+	data_collator: DataCollatorForSeq2SeqAgreementAttraction,
 ) -> Seq2SeqAgreementAttractionTrainer:
 	'''Sets up and return the Seq2SeqAgreementAttractionTrainer.'''
 	if training_args.do_train:
@@ -340,6 +380,9 @@ def setup_trainer(
 	return trainer
 
 def run_train(trainer: Seq2SeqAgreementAttractionTrainer) -> None:
+	'''
+	Runs training and saves some information used during eval to disk.
+	'''
 	try:
 		# allows us to continue training a stored checkpoint
 		train_result = trainer.train(
@@ -376,7 +419,7 @@ def run_eval(
 	data_args: DataTrainingArguments, 
 	training_args: Seq2SeqAgreementAttractionTrainingArguments, 
 	dataset: Dataset,
-	data_collator: Union[default_data_collator, DataCollatorForSeq2Seq],
+	data_collator: DataCollatorForSeq2SeqAgreementAttraction,
 	config: AutoConfig,
 	tokenizer: AutoTokenizer,
 ) -> None:
@@ -421,7 +464,12 @@ def run_eval(
 		else:
 			no_trainer = True
 		
-		metrics = compute_metrics(output_pred_file, data_args, return_results='list')
+		metrics = compute_metrics(
+			pred_file=output_pred_file, 
+			gold_file=data_args.validation_file, 
+			return_results='list',
+			predict_identical_until_given_word_number=training_args.predict_identical_until_given_word_number,
+		)
 		
 		iteration_match = re.findall('.*checkpoint-([0-9]+)$', path[:-1])[0]
 		iteration 		= int(iteration_match)

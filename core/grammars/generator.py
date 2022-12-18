@@ -17,8 +17,7 @@ from contextlib import suppress
 from nltk import PCFG, Tree
 from nltk import nonterminals, Nonterminal, Production
 
-from .english_grammar_RC_PP import PAST_PRES
-from ..constants import *
+from .english_grammar_constants import *
 
 def generate(
 	grammar: PCFG, 

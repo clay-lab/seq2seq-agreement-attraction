@@ -1,3 +1,5 @@
+
+from typing import Optional
 from dataclasses import field
 from dataclasses import dataclass
 
@@ -90,7 +92,7 @@ class DataTrainingArguments:
 		},
 	)
 	
-	ignore_pad_token_for_loss: bool = field(
+	ignore_pad_token_for_loss: Optional[bool] = field(
 		default=True,
 		metadata={
 			"help": "Whether to ignore the tokens corresponding to padded labels in the loss computation or not."

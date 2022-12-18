@@ -6,41 +6,10 @@ from nltk import Tree, PCFG, CFG
 from nltk import nonterminals
 
 from typing import *
+from .english_grammar_constants import PAST_PRES
 from .generator import generate, format_tree_string
 from .generator import create_dataset_json, combine_dataset_jsons
 from .generator import grep_next_subtree
-
-from .keybaseddefaultdict import KeyBasedDefaultDict
-
-# this creates a dictionary that returns a default string for sg and pl
-# based on the value of the key passed to it
-# override for specific verbs that display non-default behavior as below
-PAST_PRES = {
-	'sg': KeyBasedDefaultDict(lambda s: re.sub(r'ed$', 's', s)),
-	'pl': KeyBasedDefaultDict(lambda s: re.sub(r'ed$', '', s)),
-}
-
-PAST_PRES['sg'].update({
-	k: re.sub(r'ed$', 'es', k) for k in [
-		'liked', 
-		'inspired',
-		'faced',
-		'predated',
-		'eclipsed',
-		'shaded',
-	]
-})
-
-PAST_PRES['pl'].update({
-	k: re.sub(r'ed$', 'e', k) for k in [
-		'liked', 
-		'inspired',
-		'faced',
-		'predated',
-		'eclipsed',
-		'shaded',
-	]
-})
 
 english_grammar_RC_PP = PCFG.fromstring("""
 	S -> DP VP [1.0]

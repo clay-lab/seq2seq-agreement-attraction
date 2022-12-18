@@ -1,4 +1,4 @@
-from typing import *
+from typing import Set
 
 MUELLER_T5_MODELS: Set[str] = set(
 	[f'{pfx}-1m' for pfx in ['babyt5', 'c4', 'wikit5', 'simplewiki']] +

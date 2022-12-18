@@ -1,3 +1,4 @@
+from typing import Optional
 from dataclasses import field
 from dataclasses import dataclass
 from transformers import Seq2SeqTrainingArguments
@@ -8,7 +9,7 @@ class Seq2SeqAgreementAttractionTrainingArguments(Seq2SeqTrainingArguments):
 	Arguments added to the Seq2SeqTrainingArguments that are useful for
 	evaluating model performance in agreement attraction configurations.
 	"""
-	predict_identical_until_given_word_number: bool = field(
+	predict_identical_until_given_word_number: Optional[bool] = field(
 		default=False,
 		metadata={
 			"help": "Whether to force the model to predict an identical sequence to the target sequence "
@@ -18,7 +19,7 @@ class Seq2SeqAgreementAttractionTrainingArguments(Seq2SeqTrainingArguments):
 		}
 	)
 	
-	predict_from_given_words_after_identical: bool = field(
+	predict_from_given_words_after_identical: Optional[bool] = field(
 		default=False,
 		metadata={
 			"help": "Whether to force the model to predict from a prespecified set of words after predicting "
@@ -30,5 +31,14 @@ class Seq2SeqAgreementAttractionTrainingArguments(Seq2SeqTrainingArguments):
 	)
 	
 	def __post_init__(self):
+		if not self.predict_with_generate:
+			self.predict_identical_until_given_word_number = False
+			self.predict_from_given_words_after_identical = False
+		
 		if self.predict_from_given_words_after_identical:
 			self.predict_identical_until_given_word_number = True
+		
+		if self.predict_identical_until_given_word_number:
+			self.remove_unused_columns = False
+		
+		super().__post_init__()
