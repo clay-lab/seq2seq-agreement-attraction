@@ -390,10 +390,10 @@ def agreement_attraction(
 			(distractor_number == 'pl' and not main_clause_verb.endswith('s'))
 		):
 			return True
-	else:
-		# if we're here, it means none of the distractors differ in number
-		# so the verb is messed up, but it's irrelevant to attraction
-		return None
+	
+	# if we're here, it means none of the distractors differ in number
+	# so the verb is messed up, but it's irrelevant to attraction
+	return None
 
 def format_sentences(sentences: List[str]) -> List[str]:
 	'''
