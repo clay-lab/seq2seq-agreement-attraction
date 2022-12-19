@@ -275,44 +275,56 @@ def ignorecase_first_word_identical(
 	return pred_sentence.lower().split()[0] == gold_sentence.lower().split()[0]
 
 @metric
-def agreement_attraction_any(
+def agreement_attraction(
 	pred_sentence: str,
 	gold_sentence: str,
 	tgt_lang: str,
 	tense: str,
 	predict_identical_until_given_word_number: int = None,
 ) -> Union[bool, 'NoneType']:
-	'''Is there agreement attraction with the closest preceding distractor?'''
+	'''Is there agreement attraction with any distractor?'''
 	
 	# if we can't parse the target language, or we are in past tense
 	# attraction is undefined for English
 	if tgt_lang not in CURRENTLY_SUPPORTED or tense == 'past':
 		return None
 	
-	# format the sentences to the identical word number and following word
-	# since we will only compare the following word in this case
-	if predict_identical_until_given_word_number is not None:
-		pred_sentence = ' '.join(pred_sentence.split()[:predict_identical_until_given_word_number+1])
-		pred_sentence += ' [EOS]'
-		gold_sentence = ' '.join(gold_sentence.split()[:predict_identical_until_given_word_number+1])
-		gold_sentence += ' [EOS]'
-	
 	# now, we parse the predicted sentence using the present tense grammar
 	# to determine whether there are any distractors
 	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower()).replace('[eos]', '[EOS]')
+	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
 		# raises IndexError if all words exist but cannot be parsed
 		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
 	except (ValueError,IndexError):
-		# if the sentence cannot be parsed, we will not count it
-		# technically, it might still show attraction and also be wrong in some other way
-		# but we can figure that out later
-		return None
+		# if we can't parse the sentence, but we have the value for 
+		# predict_identical_until_given_word_number, we can
+		# try parsing only up to that word number and comparing that for agreement attraction
+		# format the sentences to the identical word number and following word
+		# since we will only compare the following word in this case
+		if predict_identical_until_given_word_number is None:
+			# if the sentence can't be parsed, and we're not comparing the first
+			# num words, we can't do anything, so return none
+			return None
+		
+		pred_sentence = ' '.join(pred_sentence.split()[:predict_identical_until_given_word_number+1])
+		pred_sentence += ' [EOS]'
+		gold_sentence = ' '.join(gold_sentence.split()[:predict_identical_until_given_word_number+1])
+		gold_sentence += ' [EOS]'
+		
+		pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower()).replace('[eos]', '[EOS]')
+		
+		try:
+			parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
+		except (ValueError,IndexError):
+			# if the sentence still cannot be parsed, we will not count it
+			# technically, it might still show attraction and also be wrong in some other way
+			# but we can figure that out later
+			return None
 		
 	# note that we are checking this here because we do not care if the verb is inflected wrong
 	# relative to the gold sentence for attraction.
