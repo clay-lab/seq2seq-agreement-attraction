@@ -23,4 +23,5 @@ python core/run_seq2seq.py \
 	--output_dir outputs/en_wiki-nointe-noconj-sm-5050-ques-7812updates/t5-efficient-base-nl2-finetuning-en_wiki-nointe-noconj-sm-5050-ques-bs128/ \
 	--per_device_eval_batch_size 16 \
 	--predict_with_generate \
-	--predict_from_given_words_after_identical
+	--predict_from_given_words_after_identical \
+	--val_max_target_length 80
