@@ -407,7 +407,7 @@ def run_train(trainer: Seq2SeqAgreementAttractionTrainer) -> None:
 							'num_train_examples': trainer.train_dataset.num_rows,
 							'train_dataset': trainer.train_dataset.name,
 							'learning_rate': trainer.args.learning_rate,
-							'n_params': f'{round(sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)/1000000)}M'
+							'n_params': f'{round(trainer.model.num_parameters()/1000000)}M'
 						}.items())
 					)
 		
