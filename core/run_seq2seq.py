@@ -436,7 +436,7 @@ def run_eval(
 		metadata = [json.loads(l) for l in in_file.readlines()]
 	
 	for path in sort_human(glob.glob(os.path.join(training_args.output_dir, 'checkpoint-*', ''))):
-		output_pred_file = os.path.join(path, basename + '.eval_preds_seq2seq.txt')
+		output_pred_file = os.path.join(path, f'{basename}.eval_preds_seq2seq.txt')
 		
 		# do not re-compute predictions if they already exist
 		if not os.path.exists(output_pred_file):
@@ -476,7 +476,7 @@ def run_eval(
 		iteration_match = re.findall('.*checkpoint-([0-9]+)$', path[:-1])[0]
 		iteration 		= int(iteration_match)
 		
-		output_eval_file = os.path.join(path, basename + '.eval_results_seq2seq.csv.gz')
+		output_eval_file = os.path.join(path, f'{basename}.eval_results_seq2seq.csv.gz')
 		
 		if no_trainer or trainer.is_world_process_zero():
 			# sort these columns last
