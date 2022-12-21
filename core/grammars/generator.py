@@ -19,6 +19,8 @@ from nltk import nonterminals, Nonterminal, Production
 
 from .english_grammar_constants import *
 
+MAX_SENTENCE_LENGTH_IN_WORDS: int = 15
+
 def generate(
 	grammar: PCFG, 
 	start: str = None, 
@@ -394,6 +396,9 @@ def create_dataset_json(
 			print(f'Generating {name} examples')
 			for n in tqdm(range(n_examples)):
 				source, pfx, target = ex_generator(grammar)
+				while len(format_tree_string(source, grammar.lang, pfx).split()) > MAX_SENTENCE_LENGTH_IN_WORDS:
+					source, pfx, target = ex_generator(grammar)
+				
 				metadata.append(get_example_metadata(grammar, source, pfx, target))
 				prefixes[pfx] = 1 if not pfx in prefixes else prefixes[pfx] + 1
 				l += [{
@@ -531,7 +536,7 @@ def create_balanced_dataset_json(
 		
 		return preamble
 	
-	file_prefix = f'{file_prefix}_' if file_prefix and not (file_prefix[-1] in ['-', '_']) else ''
+	file_prefix = f'{file_prefix}_' if file_prefix and not (file_prefix[-1] in ['-', '_']) else file_prefix
 	create_data_path(os.path.join('data', file_prefix))
 	name = 'test'
 	
@@ -547,9 +552,15 @@ def create_balanced_dataset_json(
 	unique_preambles = []
 	distinct_examples_so_far_of_type = {k: 0 for k in TARGET_N_EXAMPLES_OF_TYPE}
 	skips = 0
+	too_long = 0
 	
 	while distinct_examples_so_far_of_type != TARGET_N_EXAMPLES_OF_TYPE:
 		source, pfx, target = ex_generator(grammar)
+		while len(format_tree_string(source, grammar.lang, pfx).split()) > MAX_SENTENCE_LENGTH_IN_WORDS:
+			too_long += 1
+			skips += 1
+			source, pfx, target = ex_generator(grammar)
+		
 		example_metadata = get_example_metadata(grammar, source, pfx, target)
 		example_category = get_example_category(source)
 		example_metadata['condition'] = example_category
@@ -575,7 +586,7 @@ def create_balanced_dataset_json(
 			print(
 				f'{example_category:<{max([len(k) for k in TARGET_N_EXAMPLES_OF_TYPE])}}: '
 				f'{distinct_examples_so_far_of_type[example_category]:>{max([len(str(k)) for k in TARGET_N_EXAMPLES_OF_TYPE.values()])}}'
-				f'\t{progress} (skipped: {skips})\r',
+				f'\t{progress} (skipped: {skips}, too long: {too_long})\r',
 				end=''
 			)
 		else:
