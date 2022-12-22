@@ -215,11 +215,10 @@ def load_config_tokenizer_model(
 	
 	if model is None:
 		# save and restore the original name of the model
+		original_name = None
 		if model_path is not None:
 			if model_args.model_name_or_path is not None:
 				original_name = model_args.model_name_or_path
-			else:
-				original_name = None
 			
 			model_args.model_name_or_path = model_path
 		
