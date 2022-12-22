@@ -71,6 +71,9 @@ class Seq2SeqAgreementAttractionTrainer(Seq2SeqTrainer):
 		]
 		
 		sentences = self.tokenizer.batch_decode(inputs['labels'])
+		if 'The buildings by the offices beside the building shade the buildings.</s>' in sentences:
+			breakpoint()
+		
 		identical_until_word_numbers = inputs['predict_identical_until_given_word_number']
 		truncated_sentences = []
 		for sentence, word_number in zip(sentences, identical_until_word_numbers):
@@ -145,6 +148,10 @@ class Seq2SeqAgreementAttractionTrainer(Seq2SeqTrainer):
 			'''
 			if (len(input_ids) - 1) <= (len(truncated_sequences[batch_id]) - 1):
 				return truncated_sequences[batch_id][len(input_ids)-1]
+			
+			if (len(input_ids) - 2) <= (len(truncated_sequences[batch_id]) - 1):
+				if all(token_id in truncated_sequences[batch_id][len(input_ids)-2] for token_id in self.start_word_ids):
+					return self.all_token_ids
 			
 			return self.all_token_ids
 		
