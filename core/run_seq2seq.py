@@ -214,7 +214,13 @@ def load_config_tokenizer_model(
 		)
 	
 	if model is None:
+		# save and restore the original name of the model
 		if model_path is not None:
+			if model_args.model_name_or_path is not None:
+				original_name = model_args.model_name_or_path
+			else:
+				original_name = None
+			
 			model_args.model_name_or_path = model_path
 		
 		model = AutoModelForSeq2SeqLM.from_pretrained(
@@ -229,6 +235,9 @@ def load_config_tokenizer_model(
 			revision=model_args.model_revision,
 			use_auth_token=True if model_args.use_auth_token else None,
 		)
+		
+		if original_name is not None:
+			model_args.model_name_or_path = original_name
 		
 	# Set seed before initializing model.
 	set_seed(training_args.seed)
@@ -441,20 +450,20 @@ def run_eval(
 		# do not re-compute predictions if they already exist
 		if not os.path.exists(output_pred_file):
 			_, _, model = load_config_tokenizer_model(
-						model_args=model_args, 
-						training_args=training_args, 
-						config=config, 
-						tokenizer=tokenizer,
-						model_path=path
-					)
-			
+				model_args=model_args, 
+				training_args=training_args, 
+				config=config, 
+				tokenizer=tokenizer,
+				model_path=path
+			)
+	
 			trainer = setup_trainer(
-						model=model,
-						tokenizer=tokenizer,
-						training_args=training_args,
-						dataset=dataset,
-						data_collator=data_collator
-					)
+				model=model,
+				tokenizer=tokenizer,
+				training_args=training_args,
+				dataset=dataset,
+				data_collator=data_collator
+			)
 			no_trainer = False
 			
 			predictions = trainer.predict(test_dataset=dataset, max_length=data_args.val_max_target_length)
@@ -498,15 +507,15 @@ def run_eval(
 			n_params = train_params['n_params']
 			
 			metrics = metrics.assign(
-					model_name=re.sub('["\']', '', model_args.model_name_or_path),
-					train_dataset=train_dataset,
-					test_dataset=os.path.basename(data_args.validation_file).replace('.json.gz', ''),
-					learning_rate=learning_rate,
-					num_train_epochs=num_train_epochs,
-					n_training_examples=num_train_examples,
-					n_test_examples=dataset.num_rows,
-					n_params=n_params,
-				)
+				model_name=re.sub('["\']', '', model_args.model_name_or_path),
+				train_dataset=train_dataset,
+				test_dataset=os.path.basename(data_args.validation_file).replace('.json.gz', ''),
+				learning_rate=learning_rate,
+				num_train_epochs=num_train_epochs,
+				n_training_examples=num_train_examples,
+				n_test_examples=dataset.num_rows,
+				n_params=n_params,
+			)
 			
 			metrics = metrics[[c for c in metrics.columns if not c in metric_names] + metric_names]
 			metrics.to_csv(output_eval_file, index=False, na_rep='NaN')
