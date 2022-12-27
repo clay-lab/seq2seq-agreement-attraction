@@ -150,12 +150,51 @@ class Seq2SeqAgreementAttractionTrainer(Seq2SeqTrainer):
 				return truncated_sequences[batch_id][len(input_ids)-1]
 			
 			if (len(input_ids) - 2) <= (len(truncated_sequences[batch_id]) - 1):
+				# if we're one past the length of the truncated sequences,
+				# we want to either tell it to predict a start word token or from all tokens
+				# if it previously predicted a start token (due to unequal tokenization length)
+				
+				# here's how we do this:
+				# if you're one past the end and you predicted something that doesn't start a word
+				# we want a word break, so you must predict a start word
+				if input_ids[-1] not in self.start_word_ids:
+					return self.start_word_ids
+				
+				# otherwise, you have predicted a start word
+				#
+				# this can occur in two scenarios: (i) one of the targets is a start word
+				# 								  (ii) the targets have unequal numbers of tokens,
+				#									   and you predicted a start word after predicting
+				#									   only one of a possible n
+				#
+				# in case (i), we want to predict a start word again
+				# in case (ii), we want to allow prediction of any token
+				#
+				# we can check for case (ii) by checking whether we added all the start word tokens
+				# to the allowable predictions for the previous step. we only do this when there are
+				# unequal numbers of tokens per allowed word. To do this, we see whether the allowed
+				# predictions at the previous step is the same as the union of the allowed tokens and
+				# the start word tokens. if so, we added all the start word tokens at the previous step,
+				# to some non-start tokens (since words with unequal numbers of tokens will have at least one non-start-word token)
+				# the model has not predict a start word token (since we are past the conditional above)
+				# and we want to allow it to continue its prediction using any token 
+				#
+				# this will fail in exactly one case, which is when we've manually allowed
+				# every start word token in our targets, and would want another start word after. 
+				# but at that point, constraining predictions isn't doing much anyway, so that 
+				# failure is not really worth accounting for here
 				check_ids = set(truncated_sequences[batch_id][len(input_ids)-2])
 				if check_ids == set_start_word_ids.union(check_ids):
 					return self.all_token_ids
-
+				
+				# otherwise, we did not manually add all the start word tokens at a previous step,
+				# which means it predict a start word token from the specified list, and we are in
+				# case (i). That means we want a word break now, so we only allow it to predict
+				# a start word token
 				return self.start_word_ids
 			
+			# if we're > 1 past the end of the list, then you
+			# can continue however you like
 			return self.all_token_ids
 		
 		return prefix_allowed_tokens_fn
