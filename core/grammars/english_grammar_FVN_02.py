@@ -18,7 +18,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	
 	Comp -> 'real' | 'estate'
 	
-	N_sg -> 'advertisement' | 'office' | 'agent' | 'announcement' | 'director' | 'foundation' 
+	N_sg -> 'advertisement' | 'office' | 'agent' | 'announcement' | 'director' | 'foundation' | 'letter'
 	N_sg -> 'article' | 'writer' | 'magazine' | 'author' | 'speech' | 'city' | 'computer' | 'cousin' | 'program'
 	N_sg -> 'experiment' | 'contract' | 'actor' | 'film' | 'discussion' | 'topic' | 'paper' | 'dog'
 	N_sg -> 'path' | 'lake' | 'friend' | 'editor' | 'gift' | 'daughter' | 'visitor' | 'helicopter'
@@ -31,7 +31,7 @@ english_grammar_FVN_02 = CFG.fromstring("""
 	N_sg -> 'company' | 'tour' | 'monument' | 'train' | 'truck' | 'bridge' | 'stream'    
 	
 	N_pl -> 'advertisements' | 'offices' | 'agents' | 'announcements' | 'directors'
-	N_pl -> 'foundations' | 'articles' | 'writers' | 'magazines' | 'authors' | 'speeches' | 'cities'
+	N_pl -> 'foundations' | 'letters' | 'articles' | 'writers' | 'magazines' | 'authors' | 'speeches' | 'cities'
 	N_pl -> 'computers' | 'cousins' | 'programs' | 'experiments' | 'contracts' | 'actors' | 'films' | 'discussions'
 	N_pl -> 'topics' | 'papers' | 'dogs' | 'paths' | 'lakes' | 'friends' | 'editors' | 'gifts'
 	N_pl -> 'daughters' | 'visitors' | 'helicopters' | 'flights' | 'canyons' | 'lessons' | 'governments'
