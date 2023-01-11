@@ -404,7 +404,7 @@ def format_sentences(sentences: List[str]) -> List[str]:
 			sentences (list[str]): a list of strings to format
 	'''
 	sentences = [sentence.strip() for sentence in sentences]
-	sentences = [re.sub(r'(?<!\s)([\?\.,])', ' \\1', sentence) for sentence in sentences]
+	sentences = [re.sub(r'(?<!\s)([\?\.,!])', ' \\1', sentence) for sentence in sentences]
 	sentences = [re.sub(r'\s+', ' ', sentence) for sentence in sentences]
 	
 	return sentences
