@@ -1,0 +1,26 @@
+name: py38-agratt
+dependencies:
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - cudatoolkit=11.7
+  - huggingface_hub >=0.2.1
+  - python=3.9.15
+  - setuptools <=59.5.0
+  - conda-forge::transformers
+  - tokenizers=0.12.0
+  - importlib-metadata
+  - datasets
+  - pandas
+  - sacrebleu
+  - sentencepiece
+  - tqdm
+  - seaborn
+  - spacy
+  - matplotlib
+  - protobuf
+  - nltk
+  #- jax
+  #- conda-forge::cuda-nvcc
+  #- nvidia::cuda-nvcc
+  #- flax

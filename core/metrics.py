@@ -294,7 +294,7 @@ def agreement_attraction(
 	parser = PARSERS[tgt_lang](GRAMMARS_PARSING[tgt_lang])
 	
 	# convert to lowercase and remove period at end for parsing purposes
-	pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower())
+	pred_sentence_fmt = re.sub(r' (\.|\?|!)$', '', pred_sentence.lower())
 	
 	try:
 		# raises ValueError if a word does not exist in the grammar
@@ -316,7 +316,7 @@ def agreement_attraction(
 		gold_sentence = ' '.join(gold_sentence.split()[:predict_identical_until_given_word_number+1])
 		gold_sentence += ' [EOS]'
 		
-		pred_sentence_fmt = re.sub(r' (\.|\?)$', '', pred_sentence.lower()).replace('[eos]', '[EOS]')
+		pred_sentence_fmt = re.sub(r' (\.|\?|!)$', '', pred_sentence.lower()).replace('[eos]', '[EOS]')
 		
 		try:
 			parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
@@ -404,7 +404,7 @@ def format_sentences(sentences: List[str]) -> List[str]:
 			sentences (list[str]): a list of strings to format
 	'''
 	sentences = [sentence.strip() for sentence in sentences]
-	sentences = [re.sub(r'(?<!\s)([\?\.,!])', ' \\1', sentence) for sentence in sentences]
+	sentences = [re.sub(r'(?<!\s)([\?\.,!\'])', ' \\1', sentence) for sentence in sentences]
 	sentences = [re.sub(r'\s+', ' ', sentence) for sentence in sentences]
 	
 	return sentences

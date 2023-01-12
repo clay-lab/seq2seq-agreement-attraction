@@ -4,8 +4,8 @@
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=64GB
-#SBATCH --time=10:00:00
+#SBATCH --mem=32GB
+#SBATCH --time=02-00:00:00
 #SBATCH --gpus=v100:1
 #SBATCH --partition=gpu
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND
@@ -24,4 +24,4 @@ python core/run_seq2seq.py \
 	--per_device_eval_batch_size 16 \
 	--predict_with_generate \
 	--predict_from_given_words_after_identical \
-	--val_max_target_length 50
+	--val_max_target_length 75
