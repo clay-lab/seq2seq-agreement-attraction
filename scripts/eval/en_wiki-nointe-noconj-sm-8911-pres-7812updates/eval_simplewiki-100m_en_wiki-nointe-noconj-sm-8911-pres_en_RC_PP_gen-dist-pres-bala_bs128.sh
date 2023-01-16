@@ -24,4 +24,4 @@ python core/run_seq2seq.py \
 	--per_device_eval_batch_size 16 \
 	--predict_with_generate \
 	--predict_from_given_words_after_identical \
-	--val_max_target_length 60
+	--val_max_target_length 55
