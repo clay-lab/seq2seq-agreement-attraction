@@ -49,6 +49,17 @@ CURRENTLY_SUPPORTED = [
 # language-specific lowercase functions
 LOWERCASE = defaultdict(lambda: lambda s: s.lower())
 
+# trim predicted sentences to this many words before attempting to parse them
+# this is necessary to prevent out-of-memory errors caused by 
+# repetitive recursive predictions. our test data is restricted to produce sentences
+# no longer than 15 words; we add a few extra since punctuation becomes space separated
+# during formatting. Trying to do this using --val_max_target_length doesn't work
+# because it is expressed as number of tokens. However, the different models we
+# use differ a lot in terms of how many tokens they use for the words in our
+# test set, so what is long enough for one model leads to OOM errors for another.
+# by doing this using number of words, we can avoid this issue
+MAX_NUM_WORDS_TO_ATTEMPT_PARSING: int = 20
+
 class metric():
 	'''
 	A class to simplify the construction of useful metrics functions. Can be used as a function decorator.
@@ -299,7 +310,8 @@ def agreement_attraction(
 	try:
 		# raises ValueError if a word does not exist in the grammar
 		# raises IndexError if all words exist but cannot be parsed
-		parsed_prediction = list(parser.parse(pred_sentence_fmt.split()))[-1]
+		pred_sentence_fmt = pred_sentence_fmt.split()[:MAX_NUM_WORDS_TO_ATTEMPT_PARSING]
+		parsed_prediction = list(parser.parse(pred_sentence_fmt))[-1]
 	except (ValueError,IndexError):
 		# if we can't parse the sentence, but we have the value for 
 		# predict_identical_until_given_word_number, we can
