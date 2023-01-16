@@ -313,8 +313,8 @@ def agreement_attraction(
 		pred_sentence_fmt = pred_sentence_fmt.split()
 		if len(pred_sentence_fmt) > MAX_NUM_WORDS_TO_ATTEMPT_PARSING:
 			log.warn(
-				f'The predicted sentence {" ".join(pred_sentence_fmt)!r}'
-				f'has more words than the specified limit ({MAX_NUM_WORDS_TO_ATTEMPT_PARSING}).'
+				f'The predicted sentence {" ".join(pred_sentence_fmt)!r} '
+				f'has more words than the specified limit ({MAX_NUM_WORDS_TO_ATTEMPT_PARSING}). '
 				f'It will be truncated.'
 			)
 			pred_sentence_fmt = pred_sentence_fmt[:MAX_NUM_WORDS_TO_ATTEMPT_PARSING]
