@@ -310,7 +310,15 @@ def agreement_attraction(
 	try:
 		# raises ValueError if a word does not exist in the grammar
 		# raises IndexError if all words exist but cannot be parsed
-		pred_sentence_fmt = pred_sentence_fmt.split()[:MAX_NUM_WORDS_TO_ATTEMPT_PARSING]
+		pred_sentence_fmt = pred_sentence_fmt.split()
+		if len(pred_sentence_fmt) > MAX_NUM_WORDS_TO_ATTEMPT_PARSING:
+			log.warn(
+				f'The predicted sentence {" ".join(pred_sentence_fmt)!r}'
+				f'has more words than the specified limit ({MAX_NUM_WORDS_TO_ATTEMPT_PARSING}).'
+				f'It will be truncated.'
+			)
+			pred_sentence_fmt = pred_sentence_fmt[:MAX_NUM_WORDS_TO_ATTEMPT_PARSING]
+			
 		parsed_prediction = list(parser.parse(pred_sentence_fmt))[-1]
 	except (ValueError,IndexError):
 		# if we can't parse the sentence, but we have the value for 
